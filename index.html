@@ -4,196 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECG Compression Benchmark</title>
-    <style>
-        /* Base Styles */
-        :root {
-            --primary: #2c3e50;       /* Dark Blue */
-            --secondary: #e74c3c;     /* ECG Red */
-            --accent: #3498db;        /* Blue */
-            --background: #f8f9fa;     /* Light Gray */
-            --text: #2c3e50;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        body {
-            background-color: var(--background);
-            color: var(--text);
-        }
-
-        /* Navigation */
-        .navbar {
-            background: var(--primary);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .brand {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: var(--secondary);
-        }
-
-        /* Hero Section */
-        .hero {
-            padding: 8rem 2rem 4rem;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            text-align: center;
-        }
-
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .cta-buttons {
-            margin-top: 2rem;
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-left: 4px solid var(--secondary);
-        }
-
-        /* Data Section */
-        .data-section {
-            padding: 4rem 2rem;
-            background: white;
-        }
-
-        .file-card {
-            background: var(--background);
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        /* Leaderboard Table */
-        .leaderboard-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 2rem 0;
-        }
-
-        .leaderboard-table th,
-        .leaderboard-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .leaderboard-table th {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* Submission Form */
-        .submission-form {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -204,6 +15,9 @@
             <a href="#data">Data</a>
             <a href="#evaluation">Evaluation</a>
             <a href="#leaderboard">Leaderboard</a>
+            <a href="#submissions">My Submissions</a>
+            <a href="#forum">Forum</a>
+            <a href="#terms">Terms</a>
             <a href="#submit" class="btn btn-primary">Submit</a>
         </div>
     </nav>
@@ -219,21 +33,24 @@
     </section>
 
     <!-- Metrics Preview -->
-    <section class="metrics-grid">
-        <div class="metric-card">
-            <h3>Top Compression Ratio</h3>
-            <div class="metric-value">48.2:1</div>
-            <p class="metric-team">Team SignalPro</p>
-        </div>
-        <div class="metric-card">
-            <h3>Best MSE</h3>
-            <div class="metric-value">0.0021</div>
-            <p class="metric-team">Team CardioTech</p>
+    <section class="content-section">
+        <h2>Performance Metrics</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Top Compression Ratio</h3>
+                <div class="metric-value">48.2:1</div>
+                <p class="metric-team">Team SignalPro</p>
+            </div>
+            <div class="metric-card">
+                <h3>Best MSE</h3>
+                <div class="metric-value">0.0021</div>
+                <p class="metric-team">Team CardioTech</p>
+            </div>
         </div>
     </section>
 
     <!-- Data Section -->
-    <section class="data-section" id="data">
+    <section class="content-section" id="data">
         <h2>Dataset Information</h2>
         <div class="file-card">
             <h3>PhysioNet MIT-BIH Database</h3>
@@ -247,7 +64,7 @@
     </section>
 
     <!-- Leaderboard -->
-    <section class="leaderboard" id="leaderboard">
+    <section class="content-section" id="leaderboard">
         <h2>Current Rankings</h2>
         <table class="leaderboard-table">
             <thead>
@@ -273,9 +90,9 @@
     </section>
 
     <!-- Submission Form -->
-    <section class="submission-form" id="submit">
+    <section class="content-section" id="submit">
         <h2>Submit Your Algorithm</h2>
-        <form id="submissionForm">
+        <form id="submissionForm" class="submission-form">
             <div class="form-group">
                 <label for="algorithmName">Algorithm Name</label>
                 <input type="text" id="algorithmName" required>
@@ -286,49 +103,62 @@
                 <input type="file" id="compressedFile" accept=".zip" required>
             </div>
             
-            <div class="form-group">
-                <label for="reconstructedFile">Reconstructed Signal (.mat)</label>
-                <input type="file" id="reconstructedFile" accept=".mat" required>
-            </div>
-            
             <button type="submit" class="btn btn-primary">Submit Entry</button>
         </form>
     </section>
 
-    <script>
-        // Form Validation
-        document.getElementById('submissionForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const files = {
-                zip: document.getElementById('compressedFile').files[0],
-                mat: document.getElementById('reconstructedFile').files[0]
-            };
+    <!-- My Submissions -->
+    <section class="content-section" id="submissions">
+        <h2>My Submissions</h2>
+        <div class="submission-history" id="submissionHistory">
+            <div class="submission-card">
+                <h3>Submission #1</h3>
+                <p>Status: Processing</p>
+                <p>Date: 2024-03-01</p>
+                <p>CR: 45.2 | MSE: 0.0025</p>
+            </div>
+            <div class="submission-card">
+                <h3>Submission #2</h3>
+                <p>Status: Completed</p>
+                <p>Date: 2024-02-28</p>
+                <p>CR: 42.8 | MSE: 0.0028</p>
+            </div>
+        </div>
+    </section>
 
-            if (!validateFiles(files)) {
-                alert('Please upload valid .zip and .mat files');
-                return;
-            }
+    <!-- Forum Section -->
+    <section class="content-section" id="forum">
+        <h2>Discussion Forum</h2>
+        <div class="forum-container" id="forumContainer">
+            <div class="forum-post">
+                <h3>Dataset Format Clarification</h3>
+                <p>Posted by: User123 | 2 hours ago</p>
+                <p>Can someone clarify the expected format for the reconstructed signals?</p>
+                <button class="btn btn-primary">Reply</button>
+            </div>
+            <div class="forum-post">
+                <h3>Evaluation Metrics</h3>
+                <p>Posted by: Admin | 1 day ago</p>
+                <p>Please ensure your submissions meet the evaluation criteria.</p>
+                <button class="btn btn-primary">Reply</button>
+            </div>
+        </div>
+    </section>
 
-            // Simulate submission
-            alert('Submission received! Processing...');
-        });
+    <!-- Terms Section -->
+    <section class="content-section" id="terms">
+        <h2>Terms and Conditions</h2>
+        <div class="terms-section">
+            <p>By participating in this benchmark, you agree to the following terms:</p>
+            <ul>
+                <li>Submissions must be original work</li>
+                <li>The organizers reserve the right to disqualify any submission that violates the rules</li>
+                <li>Participants must maintain the integrity of the competition</li>
+                <li>All submissions will be evaluated based on the specified metrics</li>
+            </ul>
+        </div>
+    </section>
 
-        function validateFiles(files) {
-            const zipValid = files.zip?.name.endsWith('.zip');
-            const matValid = files.mat?.name.endsWith('.mat');
-            return zipValid && matValid;
-        }
-
-        // Smooth Scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
