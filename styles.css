@@ -76,7 +76,9 @@ body {
     gap: 1rem;
     justify-content: center;
 }
-
+.download-buttons {
+    margin-top: 2rem; 
+}
 /* Metrics Grid */
 .metrics-grid {
     display: grid;
@@ -189,7 +191,7 @@ body {
     }
 }
 section[id] {
-    /* 假设导航栏高度约80px */
+    
     scroll-margin-top: 60px; 
   }
   
