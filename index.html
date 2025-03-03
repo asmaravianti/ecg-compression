@@ -49,6 +49,8 @@
         </div>
     </section>
 
+   <hr>
+
     <!-- Data Section -->
     <section class="content-section" id="data">
         <h2>Dataset Information</h2>
@@ -57,12 +59,136 @@
             <p>Format: MATLAB .mat files</p>
             <p>Sampling Frequency: 360 Hz</p>
             <div class="download-buttons">
-                <button class="btn btn-primary">Download Sample</button>
-                <button class="btn btn-secondary">Full Dataset (1.2GB)</button>
+                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-primary" download>Download Sample</a>
+                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-secondary" download>Donwload Dataset (1.2GB)</a>
+                
             </div>
         </div>
     </section>
+    <hr>
+    <!-- Evaluation Section -->
+<section class="content-section" id="evaluation">
+    <h2>Evaluation</h2>
 
+    <p>
+        The performance of each submission is evaluated based on the following metrics.
+        Higher compression ratio (CR) is better for storage/transmission efficiency,
+        while lower percentage root mean square difference (PRD) indicates more accurate
+        signal reconstruction. Finally, an overall score balances both factors.
+    </p>
+
+    <!-- 1. Compression Ratio (CR) -->
+    <div class="metric-block">
+        <h3>1. Compression Ratio (CR)</h3>
+        <p>
+            <strong>Definition:</strong> The ratio of the original signal length to the compressed signal length.
+        </p>
+        <p>
+            <strong>Formula:</strong><br>
+            <div class="formula-block"><code>CR = (Original Signal Length) / (Compressed Signal Length)</code></div>
+        </p>
+        <p>
+            <strong>Goal:</strong> Higher CR values indicate better compression efficiency.
+        </p>
+    </div>
+
+    <!-- 2. Percentage Root Mean Square Difference (PRD) -->
+    <div class="metric-block">
+        <h3>2. Percentage Root Mean Square Difference (PRD)</h3>
+        <p>
+            <strong>Definition:</strong> The error percentage between the reconstructed signal and 
+            the original signal, normalized by the signal’s variability.
+        </p>
+        <p>
+            <strong>Formula:</strong><br>
+            <div class="formula-block">
+                <code>
+                    PRD = 
+                    [ sqrt( Σ ( fᵢ - f̂ᵢ )² ) / sqrt( Σ ( fᵢ - f̄ )² ) ] × 100
+                </code>
+            </div>
+        </p>
+        <ul>
+            <li><code>fᵢ</code>: Original signal value at point <em>i</em>.</li>
+            <li><code>f̂ᵢ</code>: Reconstructed signal value at point <em>i</em>.</li>
+            <li><code>f̄</code>: Mean value of the original signal.</li>
+            <li><code>N</code>: Total number of data points.</li>
+        </ul>
+        <p>
+            <strong>Goal:</strong> Lower PRD values indicate better reconstruction quality.
+        </p>
+    </div>
+
+    <!-- 3. Overall Score -->
+    <div class="metric-block">
+        <h3>3. Overall Score</h3>
+        <p>
+            <strong>Definition:</strong> A combined score that balances compression efficiency and 
+            reconstruction accuracy.
+        </p>
+        <p>
+            <strong>Formula:</strong><br>
+            <div class="formula-block"><code>Score = CR / (PRD + ε)</code></div>
+            <br>
+            where <em>ε</em> is a small constant (e.g., 1×10<sup>-6</sup>) to avoid division by zero.
+        </p>
+        <p>
+            <strong>Goal:</strong> Higher scores indicate better overall performance.
+        </p>
+    </div>
+
+    <!-- 4. Evaluation Process -->
+    <div class="process-block">
+        <h3>4. Evaluation Process</h3>
+
+        <!-- Step 1: Input Data -->
+        <div class="process-step">
+            <h4>Step 1: Input Data</h4>
+            <p>
+                Participants are provided with ECG signals in <code>.mat</code> format (e.g., 
+                <em>PhysioNet_MITBIH_rec117_5min.mat</em>). Each file contains a single ECG recording.
+            </p>
+        </div>
+
+        <!-- Step 2: Output Requirements -->
+        <div class="process-step">
+            <h4>Step 2: Output Requirements</h4>
+            <p>
+                Participants must submit a compressed signal and a reconstructed signal.
+                The output files must be in <code>.mat</code> format and include:
+            </p>
+            <ul>
+                <li><code>f_recon</code>: The reconstructed ECG signal.</li>
+                <li><code>CR_val</code>: The compression ratio.</li>
+            </ul>
+        </div>
+
+        <!-- Step 3: Scoring -->
+        <div class="process-step">
+            <h4>Step 3: Scoring</h4>
+            <p>
+                The scoring program computes the CR and PRD for each submission.
+                The Overall Score is calculated as:
+            </p>
+            <div class="formula-block">
+                <code>Score = CR / (PRD + ε)</code>
+            </div>
+            <p>
+                The final score is the average score across all datasets.
+            </p>
+        </div>
+
+        <!-- Step 4: Leaderboard -->
+        <div class="process-step">
+            <h4>Step 4: Leaderboard</h4>
+            <p>
+                Submissions are ranked based on the Overall Score. 
+                Detailed results (including CR and PRD) are displayed for each dataset.
+            </p>
+        </div>
+    </div>
+</section>
+<hr>
     <!-- Leaderboard -->
     <section class="content-section" id="leaderboard">
         <h2>Current Rankings</h2>
@@ -125,7 +251,7 @@
             </div>
         </div>
     </section>
-
+<hr>
     <!-- Forum Section -->
     <section class="content-section" id="forum">
         <h2>Discussion Forum</h2>
@@ -144,7 +270,7 @@
             </div>
         </div>
     </section>
-
+<hr>
     <!-- Terms Section -->
     <section class="content-section" id="terms">
         <h2>Terms and Conditions</h2>
