@@ -21,7 +21,6 @@
             <a href="index.html">Home</a>
             <a href="team.html">Team</a>
             <a href="index.html#leaderboard">Leaderboard</a>
-            <a href="index.html#submissions">My Submissions</a>
             <a href="index.html#forum">Forum</a>
             <a href="index.html#terms">Terms</a>
             <a href="#" class="btn btn-primary" id="authButton">Logout</a>
@@ -54,6 +53,15 @@
                     <label for="teamCompressedFile">Compressed File (.zip)</label>
                     <input type="file" id="teamCompressedFile" accept=".zip" required>
                 </div>
+                <div class="form-group">
+                    <label for="paperLink">Paper Link (Optional)</label>
+                    <input type="url" id="paperLink" placeholder="https://example.com/paper">
+                </div>
+                <div class="form-group">
+                    <label for="paperUpload">Upload Paper (.pdf)</label>
+                    <input type="file" id="paperUpload" accept=".pdf">
+                </div>
+                <p id="paperError" style="color: red; display: none;">Please provide either a paper link or upload a PDF.</p>
                 <button type="submit" class="btn btn-primary">Submit Team Entry</button>
             </form>
         </div>
@@ -103,16 +111,43 @@
     <!-- My Submissions -->
     <section class="content-section" id="submissions">
         <h2>My Submissions</h2>
-        <div class="submission-history" id="submissionHistory"></div>
+        <div class="submission-history" id="submissionHistory">
+            <div class="submission-card">
+                <h3>Submission #1</h3>
+                <p>Status: Processing</p>
+                <p>Date: 2024-03-01</p>
+                <p>CR: 45.2 | PRD: 0.0025</p>
+            </div>
+            <div class="submission-card">
+                <h3>Submission #2</h3>
+                <p>Status: Completed</p>
+                <p>Date: 2024-02-28</p>
+                <p>CR: 42.8 | PRD: 0.0028</p>
+            </div>
+        </div>
+        <!-- <div class="submission-history" id="submissionHistory"></div> -->
     </section>
 
     <script src="scripts.js"></script>
     <script>
-        // logout 按钮逻辑
+        // Logout Button Logic
         document.getElementById("authButton").addEventListener("click", () => {
             localStorage.removeItem("authToken");
             alert("You have been logged out.");
             window.location.href = "index.html";
+        });
+
+        // Team Submission Form Validation
+        document.getElementById("teamSubmissionForm").addEventListener("submit", function(event) {
+            const paperLink = document.getElementById("paperLink").value.trim();
+            const paperUpload = document.getElementById("paperUpload").files.length;
+
+            if (!paperLink && !paperUpload) {
+                event.preventDefault();
+                document.getElementById("paperError").style.display = "block";
+            } else {
+                document.getElementById("paperError").style.display = "none";
+            }
         });
     </script>
 </body>
