@@ -296,6 +296,11 @@
         <form id="algorithmSubmissionForm" class="submission-form">
             <input type="hidden" id="codabenchSecretUrl" value="https://www.codabench.org/competitions/5899/?secret_key=65d28faf-52e8-4bd8-ab04-0f3130a6a057">
             
+            <!-- Codabench API Status -->
+            <div class="api-status-container">
+                <p>Codabench API: <span id="apiStatus" class="status-processing">Checking connection...</span></p>
+            </div>
+            
             <div class="form-group">
                 <label for="algorithmName">Algorithm Name</label>
                 <input type="text" id="algorithmName" required>

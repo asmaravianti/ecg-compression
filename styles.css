@@ -1675,3 +1675,48 @@ section[id] {
     animation: spin 1s linear infinite;
     margin-left: 10px;
 }
+
+/* API Status Indicator */
+.api-status-container {
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #6c757d;
+}
+
+.api-status-container p {
+    margin: 0;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+#apiStatus {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background-color: #cff4fc;
+    color: #055160;
+}

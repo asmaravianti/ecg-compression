@@ -5,10 +5,25 @@
 
 class CodabenchIntegration {
     constructor() {
-        this.secretUrl = document.getElementById('codabenchSecretUrl')?.value || '';
+        // Use the hardcoded URL if not provided in the DOM
+        const defaultUrl = 'https://www.codabench.org/competitions/5899/?secret_key=65d28faf-52e8-4bd8-ab04-0f3130a6a057';
+        this.secretUrl = document.getElementById('codabenchSecretUrl')?.value || defaultUrl;
         this.secretKey = this.extractSecretKey(this.secretUrl);
-        // For development, we'll use a mock API approach
-        this.useLocalMock = true; // Set to false in production
+        // Use real Codabench API instead of mock
+        this.useLocalMock = false; // Changed to false to use real API
+        // Store competition ID from URL
+        this.competitionId = this.extractCompetitionId(this.secretUrl);
+    }
+
+    /**
+     * Extract the competition ID from the Codabench URL
+     * @param {string} url The secret URL
+     * @returns {string} The extracted competition ID
+     */
+    extractCompetitionId(url) {
+        const regex = /competitions\/(\d+)/;
+        const match = url?.match(regex);
+        return match ? match[1] : '5899'; // Default to 5899 if not found
     }
 
     /**
@@ -34,10 +49,11 @@ class CodabenchIntegration {
                 const compressedFile = formData.get('compressedFile');
                 const fileName = compressedFile ? compressedFile.name : 'unknown.zip';
                 
-                // Store the submission data locally
+                // Store the submission data locally with the proper name
                 this.saveSubmission({
                     submission_id: submissionId,
                     method_name: algorithmName,
+                    name: algorithmName, // Added this to ensure name is properly saved
                     description: algorithmDescription,
                     created_at: new Date().toISOString(),
                     status: 'processing',
@@ -45,7 +61,7 @@ class CodabenchIntegration {
                 });
                 
                 // Show success message
-                this.showToast('Algorithm submitted successfully! It will be evaluated shortly.', 'success');
+                this.showToast(`Algorithm "${algorithmName}" submitted successfully! It will be evaluated shortly.`, 'success');
                 
                 // Simulate faster processing for demo purposes
                 setTimeout(() => {
@@ -54,14 +70,20 @@ class CodabenchIntegration {
                 
                 return { submission_id: submissionId };
             } else {
-                // Real implementation would use a server-side proxy approach
-                // Example code for proxy approach:
+                // Real implementation using our server-side proxy API
                 
-                // Create a new FormData to send to your backend
+                // First, ensure algorithm name is set properly
+                const algorithmName = formData.get('algorithmName');
+                if (!algorithmName || algorithmName.trim() === '') {
+                    throw new Error('Algorithm name is required');
+                }
+                
+                // Create a new FormData to send to our backend
                 const proxyData = new FormData();
                 proxyData.append('secret_key', this.secretKey);
-                proxyData.append('method_name', formData.get('algorithmName'));
+                proxyData.append('method_name', algorithmName);
                 proxyData.append('file', formData.get('compressedFile'));
+                proxyData.append('competition_id', this.competitionId);
                 
                 if (formData.get('algorithmDescription')) {
                     proxyData.append('description', formData.get('algorithmDescription'));
@@ -74,16 +96,25 @@ class CodabenchIntegration {
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`Submission failed: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Submission failed: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
                 
-                // Store the submission ID for future reference
-                this.saveSubmissionId(data.submission_id);
+                // Store the submission information for tracking
+                this.saveSubmission({
+                    submission_id: data.submission_id,
+                    method_name: algorithmName,
+                    name: algorithmName,
+                    description: formData.get('algorithmDescription') || '',
+                    created_at: new Date().toISOString(),
+                    status: 'processing',
+                    file_name: formData.get('compressedFile')?.name || 'algorithm.zip'
+                });
                 
                 // Show success message
-                this.showToast('Algorithm submitted successfully! It will be evaluated shortly.', 'success');
+                this.showToast(`Algorithm "${algorithmName}" submitted successfully! It will be evaluated shortly.`, 'success');
                 
                 return data;
             }
@@ -129,14 +160,41 @@ class CodabenchIntegration {
                 
                 return submission;
             } else {
-                // Real implementation would use a server-side proxy approach
-                const response = await fetch(`/api/proxy/codabench/results/${submissionId}`);
+                // Real implementation using our server-side proxy
+                const params = new URLSearchParams({
+                    secret_key: this.secretKey,
+                    submission_id: submissionId,
+                    competition_id: this.competitionId
+                });
+                
+                const response = await fetch(`/api/proxy/codabench/results?${params.toString()}`);
                 
                 if (!response.ok) {
-                    throw new Error(`Failed to get results: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Failed to get results: ${response.statusText}`);
                 }
                 
-                return await response.json();
+                const result = await response.json();
+                
+                // If we receive results, update our local record
+                if (result && result.submission_id) {
+                    const submissions = this.getSavedSubmissions();
+                    const index = submissions.findIndex(s => s.submission_id === submissionId);
+                    
+                    if (index !== -1) {
+                        // Update with fresh data from API
+                        submissions[index] = {
+                            ...submissions[index],
+                            status: result.status,
+                            metrics: result.metrics || submissions[index].metrics,
+                            updated_at: new Date().toISOString()
+                        };
+                        
+                        this.saveSubmissions(submissions);
+                    }
+                }
+                
+                return result;
             }
         } catch (error) {
             console.error('Error checking results:', error);
@@ -157,14 +215,40 @@ class CodabenchIntegration {
                 // Return saved submissions
                 return this.getSavedSubmissions();
             } else {
-                // Real implementation would use a server-side proxy approach
-                const response = await fetch('/api/proxy/codabench/my-submissions');
+                // Real implementation using server-side proxy
+                const params = new URLSearchParams({
+                    secret_key: this.secretKey,
+                    competition_id: this.competitionId
+                });
+                
+                const response = await fetch(`/api/proxy/codabench/my-submissions?${params.toString()}`);
                 
                 if (!response.ok) {
-                    throw new Error(`Failed to get user submissions: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Failed to get user submissions: ${response.statusText}`);
                 }
                 
-                return await response.json();
+                const apiSubmissions = await response.json();
+                
+                // Merge with local data to ensure we have all the submission details
+                const localSubmissions = this.getSavedSubmissions();
+                
+                // Map API submissions and enrich with local data if available
+                const mergedSubmissions = apiSubmissions.map(apiSub => {
+                    const localSub = localSubmissions.find(ls => ls.submission_id === apiSub.submission_id);
+                    return {
+                        ...apiSub,
+                        name: apiSub.method_name || (localSub?.name || 'Unnamed Algorithm'),
+                        method_name: apiSub.method_name || (localSub?.method_name || 'Unnamed Algorithm'),
+                        description: apiSub.description || (localSub?.description || ''),
+                        file_name: apiSub.file_name || (localSub?.file_name || 'unknown.zip')
+                    };
+                });
+                
+                // Update local storage with latest data
+                this.saveSubmissions(mergedSubmissions);
+                
+                return mergedSubmissions;
             }
         } catch (error) {
             console.error('Error fetching user submissions:', error);
@@ -317,12 +401,74 @@ class CodabenchIntegration {
             updateSubmissionsSection();
         }
     }
+
+    /**
+     * Check if the Codabench API is accessible
+     * @returns {Promise<boolean>} True if API is accessible
+     */
+    async testApiConnection() {
+        try {
+            if (this.useLocalMock) {
+                return true; // In mock mode, always return true
+            }
+            
+            const params = new URLSearchParams({
+                secret_key: this.secretKey,
+                competition_id: this.competitionId
+            });
+            
+            console.log('Testing API connection with params:', {
+                secretKeyLength: this.secretKey ? this.secretKey.length : 0,
+                competitionId: this.competitionId
+            });
+            
+            const url = `/api/proxy/codabench/test-connection?${params.toString()}`;
+            console.log('API test URL:', url);
+            
+            const response = await fetch(url);
+            
+            // Log status for debugging
+            console.log('API test response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API test error text:', errorText);
+                throw new Error(`API connection test failed: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('API test result:', result);
+            return result.success === true;
+        } catch (error) {
+            console.error('Codabench API connection test failed:', error);
+            
+            // If API check fails, fallback to mock mode
+            this.useLocalMock = true;
+            this.showToast('Unable to connect to Codabench. Using local mode for demonstration.', 'warning');
+            return false;
+        }
+    }
 }
 
 // Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Codabench integration
     const codabench = new CodabenchIntegration();
+    
+    // Test API connection
+    try {
+        const connected = await codabench.testApiConnection();
+        console.log(`Codabench API connection: ${connected ? 'Connected' : 'Using mock mode'}`);
+        
+        // Display status in UI if element exists
+        const statusElement = document.getElementById('apiStatus');
+        if (statusElement) {
+            statusElement.textContent = connected ? 'Connected to Codabench' : 'Demonstration Mode';
+            statusElement.className = connected ? 'status-success' : 'status-warning';
+        }
+    } catch (error) {
+        console.error('Error testing API connection:', error);
+    }
     
     // Handle form submission
     const form = document.getElementById('algorithmSubmissionForm');
@@ -498,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const algorithmName = document.getElementById('algorithmName');
             if (!algorithmName || !algorithmName.value.trim()) {
                 codabench.showToast('Please enter an algorithm name.', 'error');
+                algorithmName.focus(); // Focus on the input field
                 return false;
             }
             

@@ -574,5 +574,254 @@ app.get('/api/debug-uploads', authenticateToken, (req, res) => {
   }
 });
 
+// Codabench Proxy API Endpoints
+app.get('/api/proxy/codabench/test-connection', async (req, res) => {
+  try {
+    const { secret_key, competition_id } = req.query;
+    
+    if (!secret_key) {
+      return res.status(400).json({ success: false, message: 'Secret key is required' });
+    }
+    
+    const compId = competition_id || '5899';
+    
+    // Test connection to Codabench API - using the public competitions list URL 
+    // instead of individual competition endpoint which might require more permissions
+    const testUrl = `https://www.codabench.org/api/competitions/public/?secret_key=${secret_key}`;
+    
+    console.log('Testing Codabench API with URL:', testUrl);
+    
+    const response = await axios.get(testUrl, { timeout: 10000 });
+    
+    // If we get here, the connection was successful
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Successfully connected to Codabench API',
+      competitions: response.data?.count || 0
+    });
+  } catch (error) {
+    console.error('Codabench connection test failed:', error.message);
+    if (error.response) {
+      console.error('Error response:', error.response.status, error.response.data);
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to connect to Codabench API',
+      error: error.message
+    });
+  }
+});
+
+// Submit algorithm endpoint
+app.post('/api/proxy/codabench/submit', multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+}).single('file'), async (req, res) => {
+  try {
+    const { secret_key, method_name, description, competition_id } = req.body;
+    const file = req.file;
+    
+    if (!secret_key || !method_name || !file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: secret_key, method_name, and file are required' 
+      });
+    }
+    
+    const compId = competition_id || '5899';
+    
+    // Create a form data object to send to Codabench
+    const formData = new FormData();
+    formData.append('method_name', method_name);
+    formData.append('file', file.buffer, file.originalname);
+    
+    if (description) {
+      formData.append('description', description);
+    }
+    
+    // Upload to Codabench
+    const submissionUrl = `https://www.codabench.org/api/competitions/${compId}/submissions/?secret_key=${secret_key}`;
+    
+    const response = await axios.post(submissionUrl, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 30000 // 30s timeout
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Algorithm submitted successfully',
+      submission_id: response.data.id || response.data.submission_id
+    });
+  } catch (error) {
+    console.error('Error submitting to Codabench:', error.message);
+    if (error.response) {
+      console.error('Codabench error:', error.response.status, error.response.data);
+    }
+    res.status(500).json({
+      success: false,
+      message: `Submission failed: ${error.message}`,
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// Get results for a submission
+app.get('/api/proxy/codabench/results', async (req, res) => {
+  try {
+    const { secret_key, submission_id, competition_id } = req.query;
+    
+    if (!secret_key || !submission_id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required parameters: secret_key and submission_id' 
+      });
+    }
+    
+    const compId = competition_id || '5899';
+    
+    // Get submission details from Codabench
+    const url = `https://www.codabench.org/api/competitions/${compId}/submissions/${submission_id}/?secret_key=${secret_key}`;
+    
+    const response = await axios.get(url, { timeout: 10000 });
+    
+    // Extract metrics from the submission
+    const submission = response.data;
+    let metrics = null;
+    
+    // Extract scoring metrics if available
+    if (submission.scoring_result) {
+      try {
+        const scoreData = JSON.parse(submission.scoring_result);
+        metrics = {
+          CR: scoreData.CR || 0,
+          PRD: scoreData.PRD || 0,
+          Score: scoreData.score || scoreData.Score || 0
+        };
+      } catch (e) {
+        console.warn('Could not parse scoring result:', e.message);
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      submission_id: submission.id,
+      method_name: submission.method_name,
+      status: submission.status_display === 'Finished' ? 'completed' : 'processing',
+      created_at: submission.created_when,
+      metrics: metrics
+    });
+  } catch (error) {
+    console.error('Error fetching submission results:', error.message);
+    if (error.response) {
+      console.error('Codabench error:', error.response.status, error.response.data);
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch results: ${error.message}`,
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// Get all user submissions for a competition
+app.get('/api/proxy/codabench/my-submissions', async (req, res) => {
+  try {
+    const { secret_key, competition_id } = req.query;
+    
+    if (!secret_key) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required parameter: secret_key' 
+      });
+    }
+    
+    const compId = competition_id || '5899';
+    
+    // Get all submissions from Codabench
+    const url = `https://www.codabench.org/api/competitions/${compId}/submissions/?secret_key=${secret_key}`;
+    
+    const response = await axios.get(url, { timeout: 15000 });
+    
+    // Process submissions to match our format
+    const submissions = response.data.results.map(sub => {
+      // Extract metrics if available
+      let metrics = null;
+      if (sub.scoring_result) {
+        try {
+          const scoreData = JSON.parse(sub.scoring_result);
+          metrics = {
+            CR: scoreData.CR || 0,
+            PRD: scoreData.PRD || 0,
+            Score: scoreData.score || scoreData.Score || 0
+          };
+        } catch (e) {
+          console.warn('Could not parse scoring result:', e.message);
+        }
+      }
+      
+      return {
+        submission_id: sub.id,
+        method_name: sub.method_name || 'Unnamed Algorithm',
+        description: sub.description || '',
+        status: sub.status_display === 'Finished' ? 'completed' : 'processing',
+        created_at: sub.created_when,
+        metrics: metrics
+      };
+    });
+    
+    res.status(200).json(submissions);
+  } catch (error) {
+    console.error('Error fetching user submissions:', error.message);
+    if (error.response) {
+      console.error('Codabench error:', error.response.status, error.response.data);
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch submissions: ${error.message}`,
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// Enhanced debug endpoint for Codabench configuration
+app.get('/api/debug-codabench-config', (req, res) => {
+  try {
+    // Create a safe version of the environment variables (hiding full secret key)
+    const safeConfig = {
+      api_url: process.env.CODABENCH_API_URL || 'Not set',
+      api_url_status: process.env.CODABENCH_API_URL ? 'Set' : 'Missing',
+      competition_id: process.env.CODABENCH_COMPETITION_ID || 'Not set',
+      competition_id_status: process.env.CODABENCH_COMPETITION_ID ? 'Set' : 'Missing',
+      secret_key_status: process.env.CODABENCH_SECRET_KEY ? 'Set' : 'Missing',
+      secret_key_length: process.env.CODABENCH_SECRET_KEY?.length || 0,
+      secret_key_prefix: process.env.CODABENCH_SECRET_KEY ? 
+        `${process.env.CODABENCH_SECRET_KEY.substring(0, 4)}...` : 'Not set',
+      port: process.env.PORT || '3000',
+      node_env: process.env.NODE_ENV || 'development'
+    };
+    
+    // Test constructing a URL like we would for API calls
+    const testCompId = process.env.CODABENCH_COMPETITION_ID || '5899';
+    const testSecretKey = process.env.CODABENCH_SECRET_KEY || 'not-set';
+    const testUrl = `https://www.codabench.org/api/competitions/public/?secret_key=${testSecretKey}`;
+    
+    res.status(200).json({
+      config: safeConfig,
+      test_url: testUrl.replace(testSecretKey, `${testSecretKey.substring(0, 4)}...`),
+      server_time: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error getting debug info',
+      message: error.message
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
