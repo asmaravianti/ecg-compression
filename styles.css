@@ -977,6 +977,10 @@ input.invalid, select.invalid, textarea.invalid {
     .file-upload i {
         font-size: 1.5rem;
     }
+    
+    .formula-image {
+        max-width: 90%;
+    }
 }
 
 section[id] {
@@ -1548,4 +1552,17 @@ section[id] {
         align-items: flex-start;
         gap: 0.5rem;
     }
+}
+
+.formula-image {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+    display: block;
+}
+
+.metric-block .formula-display {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
 }
