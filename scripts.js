@@ -1,230 +1,750 @@
 // Form Validation
 document.addEventListener("DOMContentLoaded", () => {
-    // Form validation
-    document.getElementById('submissionForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-    const files = {
-          zip: document.getElementById('compressedFile')?.files[0],
-          mat: document.getElementById('reconstructedFile')?.files[0]
-    };
-
-    if (!validateFiles(files)) {
-        alert('Please upload valid .zip and .mat files');
-        return;
+    // Setup tab switching for auth modal
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+    const loginContent = document.getElementById('loginContent');
+    const registerContent = document.getElementById('registerContent');
+    
+    if (loginTab && registerTab) {
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginContent.classList.add('active');
+            registerContent.classList.remove('active');
+        });
+        
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerContent.classList.add('active');
+            loginContent.classList.remove('active');
+        });
     }
-
-    alert('Submission received! Processing...');
-});
-
-function validateFiles(files) {
-    const zipValid = files.zip?.name.endsWith('.zip');
-    const matValid = files.mat?.name.endsWith('.mat');
-    return zipValid && matValid;
-}
-
-// Smooth Scroll
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    
+    // Setup validation for auth forms
+    setupAuthFormValidation();
+    
+    // Paper submission type change handler
+    document.getElementById('paperSubmissionType')?.addEventListener('change', function() {
+        const fileGroup = document.getElementById('paperFileGroup');
+        const linkGroup = document.getElementById('paperLinkGroup');
+        
+        if (this.value === 'file') {
+            fileGroup.style.display = 'block';
+            linkGroup.style.display = 'none';
+            document.getElementById('paperLink').required = false;
+            document.getElementById('paperFile').required = true;
+        } else if (this.value === 'link') {
+            fileGroup.style.display = 'none';
+            linkGroup.style.display = 'block';
+            document.getElementById('paperLink').required = true;
+            document.getElementById('paperFile').required = false;
+        } else {
+            fileGroup.style.display = 'none';
+            linkGroup.style.display = 'none';
+            document.getElementById('paperLink').required = false;
+            document.getElementById('paperFile').required = false;
+        }
+    });
+    
+    // Change team button handler
+    document.getElementById('changeTeamBtn')?.addEventListener('click', function() {
+        const teamForm = document.getElementById('teamForm');
+        teamForm.style.display = teamForm.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Team form validation
+    setupTeamFormValidation();
+    
+    // Login to submit button
+    document.getElementById('loginToSubmitBtn')?.addEventListener('click', function() {
+        const modal = document.getElementById('authModal');
+        if (modal) modal.style.display = 'block';
+    });
+    
+    // Get started button
+    document.getElementById('getStartedBtn')?.addEventListener('click', function(e) {
         e.preventDefault();
+        if (!localStorage.getItem('authToken')) {
+            // Not logged in, show login message
+            const loginSection = document.getElementById('submit-login-message');
+            loginSection.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+        
+        // Logged in, scroll to submit section
+        const submitSection = document.getElementById('submit');
+        submitSection.scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Setup algorithm submission form
+    setupAlgorithmSubmissionForm();
+    
+    // Initialize UI state
+    updateTeamDisplay();
+    updateAuthState();
+    updateUIVisibility();
+    
+    // Smooth Scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            // Special handling for auth-required sections
+            if (this.classList.contains('auth-required-link') && !localStorage.getItem('authToken')) {
+                e.preventDefault();
+                alert('Please log in to access this section');
+                const modal = document.getElementById('authModal');
+                if (modal) modal.style.display = 'block';
+                return;
+            }
+            
+            e.preventDefault();
             const targetElement = document.querySelector(this.getAttribute('href'));
             if (targetElement) {
                 targetElement.scrollIntoView({
-            behavior: 'smooth'
-        });
+                    behavior: 'smooth'
+                });
             }
+        });
     });
-});
 
-// Forum Interaction
+    // Forum Interaction
     const forumContainer = document.getElementById('forumContainer');
     if (forumContainer) {
         forumContainer.innerHTML = `
-    <div class="forum-post">
-        <h3>Dataset Format Clarification</h3>
-        <p>Posted by: User123 | 2 hours ago</p>
-        <p>Can someone clarify the expected format for the reconstructed signals?</p>
-        <button class="btn btn-primary">Reply</button>
-    </div>
-`;
+            <div class="forum-post">
+                <h3>Dataset Format Clarification</h3>
+                <p>Posted by: User123 | 2 hours ago</p>
+                <p>Can someone clarify the expected format for the reconstructed signals?</p>
+                <button class="btn btn-primary">Reply</button>
+            </div>
+        `;
     }
 
     // Submission History initial setup
     const submissionHistoryElement = document.getElementById('submissionHistory');
     if (submissionHistoryElement && submissionHistoryElement.children.length === 0) {
         // Only set default content if there's no dynamic content yet
-        submissionHistoryElement.innerHTML = `
-    <div class="submission-card">
-        <h3>Submission #1</h3>
-        <p>Status: Processing</p>
-        <p>Date: 2024-03-01</p>
-                <p>CR: 45.2 | PRD: 0.0025</p>
-    </div>
-`;
+        loadSubmissionHistory();
     }
+});
+
+// Setup Authentication Form Validation
+function setupAuthFormValidation() {
+    // Login form validation
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        
+        // Setup live validation
+        if (loginEmailInput) setupLiveValidation(loginEmailInput, validateEmail);
+        if (loginPasswordInput) setupLiveValidation(loginPasswordInput, validatePassword);
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearValidationErrors(loginForm);
+            
+            const email = loginEmailInput?.value;
+            const password = loginPasswordInput?.value;
+            
+            // Validate email
+            const emailValidation = validateEmail(email);
+            if (!emailValidation.valid) {
+                displayValidationError(loginEmailInput, emailValidation.message);
+                return;
+            }
+            
+            // Validate password
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+                displayValidationError(loginPasswordInput, passwordValidation.message);
+                return;
+            }
+            
+            // If all validations pass, proceed with login
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                // Store the auth token and team name
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('currentTeam', data.teamName);
+                
+                // Update UI
+                updateAuthState();
+                updateUIVisibility();
+                updateTeamDisplay();
+                
+                // Close the modal
+                const modal = document.getElementById('authModal');
+                if (modal) modal.style.display = 'none';
+                
+                alert('Login successful!');
+            } catch (error) {
+                alert(`Login error: ${error.message}`);
+            }
+        });
+    }
+    
+    // Registration form validation
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        const teamNameInput = document.getElementById('registerTeamName');
+        const emailInput = document.getElementById('registerEmail');
+        const passwordInput = document.getElementById('registerPassword');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        
+        // Setup live validation
+        if (teamNameInput) setupLiveValidation(teamNameInput, validateTeamName);
+        if (emailInput) setupLiveValidation(emailInput, validateEmail);
+        if (passwordInput) setupLiveValidation(passwordInput, validatePassword);
+        
+        // Special validation for confirm password
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('blur', () => {
+                if (passwordInput?.value !== confirmPasswordInput.value) {
+                    displayValidationError(confirmPasswordInput, 'Passwords do not match');
+                }
+            });
+            
+            confirmPasswordInput.addEventListener('focus', () => {
+                const errorElement = confirmPasswordInput.parentElement.querySelector('.validation-error');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+                confirmPasswordInput.classList.remove('invalid');
+            });
+        }
+        
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearValidationErrors(registerForm);
+            
+            const teamName = teamNameInput?.value;
+            const email = emailInput?.value;
+            const password = passwordInput?.value;
+            const confirmPassword = confirmPasswordInput?.value;
+            
+            // Validate team name
+            const teamNameValidation = validateTeamName(teamName);
+            if (!teamNameValidation.valid) {
+                displayValidationError(teamNameInput, teamNameValidation.message);
+                return;
+            }
+            
+            // Validate email
+            const emailValidation = validateEmail(email);
+            if (!emailValidation.valid) {
+                displayValidationError(emailInput, emailValidation.message);
+                return;
+            }
+            
+            // Validate password
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+                displayValidationError(passwordInput, passwordValidation.message);
+                return;
+            }
+            
+            // Validate confirm password
+            if (password !== confirmPassword) {
+                displayValidationError(confirmPasswordInput, 'Passwords do not match');
+                return;
+            }
+            
+            // If all validations pass, proceed with registration
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ teamName, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Registration failed');
+                }
+                
+                alert('Registration successful! Please login.');
+                
+                // Clear form and switch to login tab
+                registerForm.reset();
+                document.getElementById('loginTab')?.click();
+            } catch (error) {
+                alert(`Registration error: ${error.message}`);
+            }
+        });
+    }
+}
+
+// Setup Team Form Validation
+function setupTeamFormValidation() {
+    // Team name form validation
+    const teamForm = document.getElementById('teamForm');
+    if (teamForm) {
+        const teamNameInput = document.getElementById('teamName');
+        
+        // Setup live validation
+        if (teamNameInput) setupLiveValidation(teamNameInput, validateTeamName);
+        
+        teamForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            clearValidationErrors(teamForm);
+            
+            const teamName = teamNameInput?.value;
+            
+            // Validate team name
+            const teamNameValidation = validateTeamName(teamName);
+            if (!teamNameValidation.valid) {
+                displayValidationError(teamNameInput, teamNameValidation.message);
+                return;
+            }
+            
+            // If validation passes, save team name
+            currentTeam = teamName;
+            localStorage.setItem('currentTeam', currentTeam);
+            
+            // Update displays
+            updateTeamDisplay();
+            const teamDisplay = document.getElementById('currentTeamDisplay');
+            if (teamDisplay) teamDisplay.textContent = currentTeam;
+            
+            // Hide the form
+            teamForm.style.display = 'none';
+            
+            alert('Team name saved!');
+        });
+    }
+}
+
+// Setup Algorithm Submission Form
+function setupAlgorithmSubmissionForm() {
+    const algorithmForm = document.getElementById('algorithmSubmissionForm');
+    if (algorithmForm) {
+        const algorithmNameInput = document.getElementById('algorithmName');
+        const compressedFileInput = document.getElementById('compressedFile');
+        const paperFileInput = document.getElementById('paperFile');
+        const paperLinkInput = document.getElementById('paperLink');
+        const descriptionInput = document.getElementById('algorithmDescription');
+        const paperTypeSelect = document.getElementById('paperSubmissionType');
+        
+        // Setup live validation
+        if (algorithmNameInput) setupLiveValidation(algorithmNameInput, validateAlgorithmName);
+        
+        // Description validation
+        if (descriptionInput) {
+            descriptionInput.addEventListener('input', function() {
+                if (this.value.length > 500) {
+                    this.value = this.value.substring(0, 500);
+                    displayValidationError(this, 'Description cannot exceed 500 characters');
+                } else {
+                    const errorElement = this.parentElement.querySelector('.validation-error');
+                    if (errorElement) errorElement.remove();
+                    this.classList.remove('invalid');
+                }
+            });
+        }
+        
+        // File input validation
+        if (compressedFileInput) {
+            compressedFileInput.addEventListener('change', () => {
+                const file = compressedFileInput.files[0];
+                const fileValidation = validateFile(file, 'zip');
+                displayValidationError(compressedFileInput, fileValidation.valid ? '' : fileValidation.message);
+            });
+        }
+        
+        // Paper file validation
+        if (paperFileInput) {
+            paperFileInput.addEventListener('change', () => {
+                const file = paperFileInput.files[0];
+                if (!file) {
+                    displayValidationError(paperFileInput, 'Please select a PDF file');
+                    return;
+                }
+                
+                if (!file.name.toLowerCase().endsWith('.pdf')) {
+                    displayValidationError(paperFileInput, 'Please upload a PDF file');
+                    return;
+                }
+                
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    displayValidationError(paperFileInput, 'File size must be less than 10MB');
+                    return;
+                }
+                
+                // Clear validation error if valid
+                displayValidationError(paperFileInput, '');
+            });
+        }
+        
+        // Paper link validation
+        if (paperLinkInput) {
+            paperLinkInput.addEventListener('blur', () => {
+                const url = paperLinkInput.value.trim();
+                if (!url) {
+                    displayValidationError(paperLinkInput, 'Please enter a valid URL');
+                    return;
+                }
+                
+                try {
+                    new URL(url);
+                    displayValidationError(paperLinkInput, '');
+                } catch (e) {
+                    displayValidationError(paperLinkInput, 'Please enter a valid URL');
+                }
+            });
+        }
+        
+        algorithmForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearValidationErrors(algorithmForm);
+            
+            // Verify login
+            if (!localStorage.getItem('authToken')) {
+                alert('Please log in to submit an algorithm');
+                return;
+            }
+            
+            // Verify team name
+            if (!currentTeam) {
+                alert('Please set a team name first!');
+                document.getElementById('changeTeamBtn').click();
+                return;
+            }
+            
+            const algorithmName = algorithmNameInput?.value;
+            const description = descriptionInput?.value;
+            const file = compressedFileInput?.files[0];
+            const paperType = paperTypeSelect?.value;
+            
+            // Validate algorithm name
+            const algorithmNameValidation = validateAlgorithmName(algorithmName);
+            if (!algorithmNameValidation.valid) {
+                displayValidationError(algorithmNameInput, algorithmNameValidation.message);
+                return;
+            }
+            
+            // Validate description
+            if (!description || description.trim().length < 10) {
+                displayValidationError(descriptionInput, 'Please provide a detailed description of your algorithm');
+                return;
+            }
+            
+            // Validate algorithm file
+            const fileValidation = validateFile(file, 'zip');
+            if (!fileValidation.valid) {
+                displayValidationError(compressedFileInput, fileValidation.message);
+                return;
+            }
+            
+            // Validate paper submission
+            if (!paperType) {
+                displayValidationError(paperTypeSelect, 'Please select a paper submission type');
+                return;
+            }
+            
+            if (paperType === 'file') {
+                const paperFile = paperFileInput.files[0];
+                if (!paperFile || !paperFile.name.toLowerCase().endsWith('.pdf')) {
+                    displayValidationError(paperFileInput, 'Please upload a valid PDF file');
+                    return;
+                }
+                
+                if (paperFile.size > 10 * 1024 * 1024) { // 10MB limit
+                    displayValidationError(paperFileInput, 'File size must be less than 10MB');
+                    return;
+                }
+            } else if (paperType === 'link') {
+                const paperLink = paperLinkInput.value.trim();
+                if (!paperLink) {
+                    displayValidationError(paperLinkInput, 'Please provide a link to your paper');
+                    return;
+                }
+                
+                try {
+                    new URL(paperLink);
+                } catch (e) {
+                    displayValidationError(paperLinkInput, 'Please enter a valid URL');
+                    return;
+                }
+            }
+            
+            // Show loading state
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Submitting...';
+            submitButton.disabled = true;
+            
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('teamName', currentTeam);
+                formData.append('algorithmName', algorithmName);
+                formData.append('description', description);
+                formData.append('file', file);
+                formData.append('paperType', paperType);
+                
+                if (paperType === 'file') {
+                    formData.append('paperFile', paperFileInput.files[0]);
+                } else if (paperType === 'link') {
+                    formData.append('paperLink', paperLinkInput.value.trim());
+                }
+                
+                // First upload to your server
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: formData
+                });
+                
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(`File upload failed: ${errorData.message || uploadResponse.statusText}`);
+                }
+                
+                const uploadResult = await uploadResponse.json();
+                
+                // Now submit to Codabench
+                const submissionResponse = await fetch('/api/submit-to-codabench', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        teamName: currentTeam,
+                        algorithmName: algorithmName,
+                        description: description,
+                        filePath: uploadResult.filePath,
+                        paperType: paperType,
+                        paperPath: uploadResult.paperFilePath || null,
+                        paperLink: paperType === 'link' ? paperLinkInput.value.trim() : null
+                    })
+                });
+                
+                // Parse response
+                const responseText = await submissionResponse.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    throw new Error(`Failed to parse response: ${responseText}`);
+                }
+                
+                if (!submissionResponse.ok) {
+                    throw new Error(data.message || data.error || 'Submission failed');
+                }
+                
+                // Handle successful submission
+                const submission = {
+                    id: data.submissionId || `local-${Date.now()}`,
+                    team: currentTeam,
+                    algorithm: algorithmName,
+                    description: description,
+                    date: new Date().toISOString(),
+                    status: data.status === 'error-but-recorded' ? 'Pending (Offline)' : 'Processing',
+                    file: file.name,
+                    paperType: paperType,
+                    paperFile: paperType === 'file' ? paperFileInput.files[0].name : null,
+                    paperLink: paperType === 'link' ? paperLinkInput.value.trim() : null
+                };
+                
+                // Save to local storage
+                submissions.push(submission);
+                localStorage.setItem('submissions', JSON.stringify(submissions));
+                
+                // Update displays
+                updateTeamDisplay();
+                loadSubmissionHistory();
+                
+                alert(data.status === 'error-but-recorded' ?
+                    'Submission stored locally (Codabench connection issue)' :
+                    'Submission received! Processing has begun.');
+                
+                // Reset form
+                algorithmForm.reset();
+                document.getElementById('paperFileGroup').style.display = 'none';
+                document.getElementById('paperLinkGroup').style.display = 'none';
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert(`Submission failed: ${error.message}`);
+            } finally {
+                // Restore button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        });
+    }
+}
+
+// Validate files function
+function validateFiles(files) {
+    const zipValid = files.zip?.name.endsWith('.zip');
+    const matValid = files.mat?.name.endsWith('.mat');
+    return zipValid && matValid;
+}
 
 // Team Management
 let currentTeam = localStorage.getItem('currentTeam') || null;
-    let submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+let submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
 let highScore = localStorage.getItem('highScore') || 0;
 
 // Update team display
 function updateTeamDisplay() {
-        const currentTeamElem = document.getElementById('currentTeam');
-        const highScoreElem = document.getElementById('highScore');
-        const totalSubmissionsElem = document.getElementById('totalSubmissions');
-
-        if (currentTeamElem) currentTeamElem.textContent = currentTeam || 'Not Set';
-        if (highScoreElem) highScoreElem.textContent = highScore;
-        if (totalSubmissionsElem) totalSubmissionsElem.textContent = submissions.length.toString();
+    const currentTeamElem = document.getElementById('currentTeam');
+    const currentTeamDisplayElem = document.getElementById('currentTeamDisplay');
+    const highScoreElem = document.getElementById('highScore');
+    const totalSubmissionsElem = document.getElementById('totalSubmissions');
+    
+    if (currentTeamElem) currentTeamElem.textContent = currentTeam || 'Not Set';
+    if (currentTeamDisplayElem) currentTeamDisplayElem.textContent = currentTeam || 'Not Set';
+    if (highScoreElem) highScoreElem.textContent = highScore;
+    if (totalSubmissionsElem) totalSubmissionsElem.textContent = submissions.length.toString();
 }
 
-// Team Form Submission
-    document.getElementById('teamForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-        const teamNameInput = document.getElementById('teamName');
-        if (teamNameInput) {
-            currentTeam = teamNameInput.value;
-    localStorage.setItem('currentTeam', currentTeam);
-    updateTeamDisplay();
-    alert('Team name saved!');
+// Update UI visibility based on auth state
+function updateUIVisibility() {
+    const isLoggedIn = !!localStorage.getItem('authToken');
+    
+    // Show/hide login message
+    const loginMessageSection = document.getElementById('submit-login-message');
+    if (loginMessageSection) {
+        loginMessageSection.style.display = isLoggedIn ? 'none' : 'block';
+    }
+    
+    // Show/hide auth-required sections
+    const authSections = document.querySelectorAll('.auth-required');
+    authSections.forEach(section => {
+        section.style.display = isLoggedIn ? 'block' : 'none';
+    });
+}
+
+// Auth button and modal handling
+function updateAuthState() {
+    const authButton = document.getElementById('authButton');
+    const authToken = localStorage.getItem('authToken');
+    
+    if (authButton) {
+        if (authToken) {
+            // User is logged in
+            authButton.textContent = 'Logout';
+            // Remove previous event listeners
+            authButton.replaceWith(authButton.cloneNode(true));
+            document.getElementById('authButton').addEventListener('click', () => {
+                localStorage.removeItem('authToken');
+                alert('You have been logged out.');
+                updateAuthState();
+                updateUIVisibility();
+            });
+        } else {
+            // User is not logged in
+            authButton.textContent = 'Login';
+            // Remove previous event listeners
+            authButton.replaceWith(authButton.cloneNode(true));
+            document.getElementById('authButton').addEventListener('click', () => {
+                const modal = document.getElementById('authModal');
+                if (modal) modal.style.display = 'block';
+            });
+            
+            // Initialize auth modal
+            const modal = document.getElementById('authModal');
+            const closeBtn = document.querySelector('.close');
+            
+            if (modal && closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            }
         }
-});
+    }
+}
 
-    // Team Submission Handler - single implementation
-    document.getElementById('teamSubmissionForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+// Load submission history on page load
+function loadSubmissionHistory() {
+    const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+    const historyContainer = document.getElementById('submissionHistory');
 
-        if (!localStorage.getItem('authToken')) {
-            alert('Please log in to submit an algorithm');
-            return;
-        }
+    if (!historyContainer) return;
 
-    if (!currentTeam) {
-        alert('Please set a team name first!');
+    if (submissions.length === 0) {
+        historyContainer.innerHTML = '<p>No submissions yet</p>';
         return;
     }
 
-        const algorithmName = document.getElementById('teamAlgorithm').value;
-        const file = document.getElementById('teamCompressedFile').files[0];
+    historyContainer.innerHTML = '';
 
-        if (!file || !file.name.endsWith('.zip')) {
-            alert('Please upload a valid .zip file');
-            return;
+    submissions.forEach(submission => {
+        const submissionElement = document.createElement('div');
+        submissionElement.className = 'submission-card';
+        submissionElement.id = `submission-${submission.id}`;
+
+        let paperInfo = '';
+        if (submission.paperType === 'file') {
+            paperInfo = `<p>Paper: ${submission.paperFile || 'Uploaded'}</p>`;
+        } else if (submission.paperType === 'link') {
+            paperInfo = `<p>Paper: <a href="${submission.paperLink}" target="_blank" rel="noopener noreferrer">View Paper</a></p>`;
         }
 
-        // Show loading state
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-        submitButton.textContent = 'Submitting...';
-        submitButton.disabled = true;
+        submissionElement.innerHTML = `
+            <h3>${submission.algorithm || 'Unknown Algorithm'}</h3>
+            <p>Status: ${submission.status || 'Unknown'}</p>
+            <p>Date: ${new Date(submission.date).toLocaleDateString()}</p>
+            <p>File: ${submission.file || 'Unknown'}</p>
+            ${paperInfo}
+            ${submission.description ? `<p>Description: ${submission.description.substring(0, 50)}${submission.description.length > 50 ? '...' : ''}</p>` : ''}
+            ${submission.scores ?
+                `<p>CR: ${submission.scores.CR || 'N/A'} | PRD: ${submission.scores.PRD || 'N/A'}</p>
+                 <p>Score: ${submission.scores.Score || 'N/A'}</p>` :
+                ''}
+            ${submission.status !== 'Completed' ?
+                `<button class="btn btn-primary check-status" data-id="${submission.id}">Check Status</button>` :
+                ''}
+        `;
 
-        try {
-            // Create FormData for file upload
-            const formData = new FormData();
-            formData.append('teamName', currentTeam);
-            formData.append('algorithmName', algorithmName);
-            formData.append('file', file);
+        historyContainer.appendChild(submissionElement);
+    });
 
-            console.log('Uploading file:', file.name, 'Size:', file.size);
+    // Add event listeners to status buttons
+    document.querySelectorAll('.check-status').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const submissionId = e.target.dataset.id;
+            if (!submissionId) return;
 
-            // First upload to your server
-            const uploadResponse = await fetch('/api/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: formData
-            });
-
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                throw new Error(`File upload failed: ${errorData.message || uploadResponse.statusText}`);
+            const card = e.target.closest('.submission-card');
+            if (card) {
+                e.target.disabled = true;
+                e.target.textContent = 'Checking...';
+                await pollSubmissionStatus(submissionId, card);
+                e.target.disabled = false;
+                e.target.textContent = 'Check Status';
             }
-
-            const uploadResult = await uploadResponse.json();
-            console.log('Upload successful, file path:', uploadResult.filePath);
-
-            // Now submit to Codabench
-            const submissionResponse = await fetch('/api/submit-to-codabench', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify({
-                    teamName: currentTeam,
-                    algorithmName: algorithmName,
-                    filePath: uploadResult.filePath
-                })
-            });
-
-            // 先记录响应状态和原始内容
-            console.log('Submission response status:', submissionResponse.status);
-            const responseText = await submissionResponse.text();
-            console.log('Submission response text:', responseText);
-
-            // 尝试解析JSON
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                throw new Error(`Failed to parse response: ${responseText}`);
-            }
-
-            if (!submissionResponse.ok) {
-                throw new Error(data.message || data.error || 'Submission failed');
-            }
-
-            // 提交成功处理
-    const submission = {
-                id: data.submissionId || `local-${Date.now()}`,
-        team: currentTeam,
-                algorithm: algorithmName,
-        date: new Date().toISOString(),
-                status: data.status === 'error-but-recorded' ? 'Pending (Offline)' : 'Processing',
-                file: file.name
-    };
-
-            // 保存到本地存储
-    submissions.push(submission);
-            localStorage.setItem('submissions', JSON.stringify(submissions));
-
-            // 创建新的提交卡片
-            const historyContainer = document.getElementById('submissionHistory');
-            if (historyContainer) {
-                const card = document.createElement('div');
-                card.className = 'submission-card';
-                card.id = `submission-${submission.id}`;
-                card.innerHTML = `
-                    <h3>${submission.algorithm}</h3>
-                    <p>Status: ${submission.status}</p>
-                    <p>Date: ${new Date(submission.date).toLocaleDateString()}</p>
-                    <p>File: ${submission.file}</p>
-                    ${data.status === 'error-but-recorded' ?
-                      '<p class="warning">Note: Submission stored locally only</p>' : ''}
-                `;
-                historyContainer.prepend(card);
-            }
-
-            // 更新显示
-    updateTeamDisplay();
-
-            alert(data.status === 'error-but-recorded' ?
-                  'Submission stored locally (Codabench connection issue)' :
-                  'Submission received! Processing has begun.');
-
-            // 重置表单
-            document.getElementById('teamSubmissionForm').reset();
-        } catch (error) {
-            console.error('Submission error:', error);
-            alert(`Submission failed: ${error.message}`);
-        } finally {
-            // 恢复按钮状态
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-        }
-});
+        });
+    });
+}
 
 // Update Leaderboard
 function updateLeaderboard() {
@@ -264,150 +784,6 @@ function updateLeaderboard() {
 
         leaderboardTable.innerHTML = leaderboardBody;
     }
-
-    // Authentication logic
-const authModal = document.getElementById('authModal');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-
-    // Modal display logic
-document.querySelectorAll('[href="#login"], [href="#register"], [href="#logout"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-            const formType = e.target.getAttribute('href')?.substring(1);
-            if (!formType) return;
-
-        if (formType === 'logout') {
-            localStorage.removeItem('authToken');
-            alert('Logged out!');
-            updateAuthState();
-                window.location.href = 'index.html';
-            return;
-        }
-
-            if (authModal) {
-        authModal.style.display = 'block';
-        showForm(formType);
-            }
-    });
-});
-
-    // Form switching
-document.querySelectorAll('.switch-form').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-            const formType = e.target.getAttribute('href')?.substring(1);
-            if (formType) showForm(formType);
-    });
-});
-
-function showForm(formType) {
-        if (loginForm) loginForm.style.display = formType === 'login' ? 'block' : 'none';
-        if (registerForm) registerForm.style.display = formType === 'register' ? 'block' : 'none';
-    }
-
-    // Close modal
-    document.querySelector('.close')?.addEventListener('click', () => {
-        if (authModal) authModal.style.display = 'none';
-    });
-
-    // Registration form submission
-    registerForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-        const teamNameInput = document.getElementById('registerTeam');
-        const emailInput = document.getElementById('registerEmail');
-        const passwordInput = document.getElementById('registerPassword');
-
-        if (!teamNameInput || !emailInput || !passwordInput) {
-            alert('Form elements not found');
-            return;
-        }
-
-    const teamData = {
-            teamName: teamNameInput.value,
-            email: emailInput.value,
-            password: passwordInput.value
-    };
-
-    try {
-        const response = await fetch('/api/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(teamData)
-        });
-
-        const data = await response.json();
-
-            if (!response.ok) throw new Error(data.message || 'Registration failed');
-
-        alert('Registration successful! Please login.');
-        showForm('login');
-    } catch (error) {
-            console.error('Registration error:', error);
-        alert(`Registration failed: ${error.message}`);
-    }
-});
-
-    // Login form submission
-    loginForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-        const emailInput = document.getElementById('loginEmail');
-        const passwordInput = document.getElementById('loginPassword');
-
-        if (!emailInput || !passwordInput) {
-            alert('Form elements not found');
-            return;
-        }
-
-    const credentials = {
-            email: emailInput.value,
-            password: passwordInput.value
-    };
-
-    try {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(credentials)
-        });
-
-        const data = await response.json();
-
-            if (!response.ok) throw new Error(data.message || 'Login failed');
-
-        localStorage.setItem('authToken', data.token);
-            if (data.teamName) {
-                localStorage.setItem('currentTeam', data.teamName);
-                currentTeam = data.teamName;
-            }
-
-        updateAuthState();
-
-            if (authModal) authModal.style.display = 'none';
-
-            // Redirect after login
-        window.location.href = 'team.html';
-    } catch (error) {
-            console.error('Login error:', error);
-        alert(`Login failed: ${error.message}`);
-    }
-});
-
-    // Update authentication state
-function updateAuthState() {
-    const isLoggedIn = !!localStorage.getItem('authToken');
-    const authButton = document.getElementById('authButton');
-    if (authButton) {
-        authButton.textContent = isLoggedIn ? 'Logout' : 'Login';
-        authButton.setAttribute('href', isLoggedIn ? '#logout' : '#login');
-    }
-}
 
     // Test Codabench connection
     async function testCodabenchConnection() {
@@ -579,64 +955,3 @@ async function fetchLeaderboard() {
         console.error('Leaderboard fetch error:', error);
     }
 }
-
-// Load submission history on page load
-function loadSubmissionHistory() {
-    const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
-    const historyContainer = document.getElementById('submissionHistory');
-
-        if (!historyContainer) return;
-
-    if (submissions.length === 0) {
-        historyContainer.innerHTML = '<p>No submissions yet</p>';
-        return;
-    }
-
-    historyContainer.innerHTML = '';
-
-    submissions.forEach(submission => {
-        const submissionElement = document.createElement('div');
-        submissionElement.className = 'submission-card';
-            submissionElement.id = `submission-${submission.id}`;
-
-        submissionElement.innerHTML = `
-                <h3>${submission.algorithm || 'Unknown Algorithm'}</h3>
-                <p>Status: ${submission.status || 'Unknown'}</p>
-            <p>Date: ${new Date(submission.date).toLocaleDateString()}</p>
-            ${submission.scores ?
-                `<p>CR: ${submission.scores.CR || 'N/A'} | PRD: ${submission.scores.PRD || 'N/A'}</p>
-                 <p>Score: ${submission.scores.Score || 'N/A'}</p>` :
-                ''}
-            ${submission.status !== 'Completed' ?
-                `<button class="btn btn-primary check-status" data-id="${submission.id}">Check Status</button>` :
-                ''}
-        `;
-
-        historyContainer.appendChild(submissionElement);
-    });
-
-    // Add event listeners to status buttons
-    document.querySelectorAll('.check-status').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            const submissionId = e.target.dataset.id;
-                if (!submissionId) return;
-
-            const card = e.target.closest('.submission-card');
-                if (card) {
-                    e.target.disabled = true;
-                    e.target.textContent = 'Checking...';
-            await pollSubmissionStatus(submissionId, card);
-                    e.target.disabled = false;
-                    e.target.textContent = 'Check Status';
-                }
-        });
-    });
-}
-
-    // Initialize on page load
-    updateTeamDisplay();
-    updateAuthState();
-    updateLeaderboard();
-    loadSubmissionHistory();
-    fetchLeaderboard();
-});

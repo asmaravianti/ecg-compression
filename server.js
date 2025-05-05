@@ -15,6 +15,28 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Validation functions
+function validateEmail(email) {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+    // Minimum 8 characters, at least one number, one uppercase, one lowercase
+    const minLength = password.length >= 8;
+    const hasNumber = /\d/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    
+    return minLength && hasNumber && hasUppercase && hasLowercase;
+}
+
+function validateTeamName(teamName) {
+    // 3-30 characters, alphanumeric + spaces
+    const teamNameRegex = /^[a-zA-Z0-9 ]{3,30}$/;
+    return teamNameRegex.test(teamName);
+}
+
 // Standardized JWT verification function
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -46,10 +68,33 @@ app.post('/api/register', async (req, res) => {
         if (!teamName || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
+        
+        // Validate email
+        if (!validateEmail(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+        
+        // Validate password
+        if (!validatePassword(password)) {
+            return res.status(400).json({ 
+                message: 'Password must be at least 8 characters long and contain at least one number, one uppercase letter, and one lowercase letter' 
+            });
+        }
+        
+        // Validate team name
+        if (!validateTeamName(teamName)) {
+            return res.status(400).json({ 
+                message: 'Team name must be 3-30 characters long and contain only letters, numbers, and spaces' 
+            });
+        }
 
         // 检查是否已存在
         if (teams.some(t => t.email === email)) {
             return res.status(400).json({ message: 'Email already registered' });
+        }
+        
+        if (teams.some(t => t.teamName === teamName)) {
+            return res.status(400).json({ message: 'Team name already taken' });
         }
 
         // 哈希密码
@@ -72,6 +117,17 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        
+        // Validate inputs
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+        
+        // Validate email format
+        if (!validateEmail(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+        
         const team = teams.find(t => t.email === email);
 
         if (!team || !await bcrypt.compare(password, team.password)) {
@@ -156,24 +212,40 @@ app.get('/api/test-codabench', authenticateToken, async (req, res) => {
 // Submit algorithm to Codabench
 app.post('/api/submit-to-codabench', authenticateToken, async (req, res) => {
   try {
-    const { teamName, algorithmName, filePath } = req.body;
+    const { teamName, algorithmName, description, filePath, paperType, paperPath, paperLink } = req.body;
 
     if (!teamName || !algorithmName || !filePath) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     if (!fs.existsSync(filePath)) {
-      return res.status(400).json({ message: 'File does not exist' });
+      return res.status(400).json({ message: 'Algorithm file does not exist' });
+    }
+    
+    // Validate paper submission
+    if (paperType === 'file' && paperPath) {
+        if (!fs.existsSync(paperPath)) {
+            return res.status(400).json({ message: 'Paper file does not exist' });
+        }
+    } else if (paperType === 'link' && !validateUrl(paperLink)) {
+        return res.status(400).json({ message: 'Invalid paper link format' });
     }
 
-    // 创建一个更符合Codabench要求的表单
+    // Create form data for Codabench
     const formData = new FormData();
-    formData.append('description', `Team: ${teamName}, Algorithm: ${algorithmName}`);
+    formData.append('description', description || `Team: ${teamName}, Algorithm: ${algorithmName}`);
     formData.append('method_name', algorithmName);
-    formData.append('phase', 1); // 假设只有一个阶段
+    formData.append('phase', 1); // Assuming only one phase
     formData.append('file', fs.createReadStream(filePath));
+    
+    // Include paper information
+    if (paperType === 'file' && paperPath) {
+        formData.append('paper_file', fs.createReadStream(paperPath));
+    } else if (paperType === 'link' && paperLink) {
+        formData.append('paper_link', paperLink);
+    }
 
-    // 尝试不同的URL格式
+    // Submission URL
     const submissionUrl = `https://www.codabench.org/api/competitions/${process.env.CODABENCH_COMPETITION_ID}/submissions/?secret_key=${process.env.CODABENCH_SECRET_KEY}`;
     console.log('Submission URL:', submissionUrl);
 
@@ -185,22 +257,20 @@ app.post('/api/submit-to-codabench', authenticateToken, async (req, res) => {
           ...formData.getHeaders(),
           'Content-Type': 'multipart/form-data'
         },
-        timeout: 60000 // 增加超时时间到60秒
+        timeout: 60000 // 60-second timeout
       }
     );
 
-    // 模拟成功响应以允许前端继续
     console.log('Submission response:', response.status);
 
     res.status(200).json({
       message: 'Submission successful',
-      submissionId: response.data.id || Date.now().toString() // 如果没有ID则使用时间戳
+      submissionId: response.data.id || Date.now().toString()
     });
   } catch (error) {
     console.error('Submission error details:', error.message);
 
-    // 重要：在出错时也返回"成功"，但带有错误标记
-    // 这样前端可以正常运行，用户体验更好
+    // Return "success" with an error flag for better UX
     res.status(200).json({
       message: 'Submission recorded locally',
       submissionId: `local-${Date.now()}`,
@@ -312,59 +382,151 @@ if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
+// Validate algorithm name
+function validateAlgorithmName(name) {
+    // 3-50 characters, alphanumeric + spaces
+    const algorithmNameRegex = /^[a-zA-Z0-9 ]{3,50}$/;
+    return algorithmNameRegex.test(name);
+}
+
+// Validate description
+function validateDescription(description) {
+    return description && description.trim().length >= 10 && description.trim().length <= 500;
+}
+
+// Validate URL
+function validateUrl(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Upload configuration with validation
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        // Create team directory if it doesn't exist
-        const teamName = req.body.teamName || 'unknown';
-        const teamDir = path.join(uploadsDir, teamName);
-
-        if (!fs.existsSync(teamDir)) {
-            fs.mkdirSync(teamDir, { recursive: true });
+    destination: (req, file, cb) => {
+        // Create appropriate directory based on file type
+        let dir;
+        if (file.fieldname === 'paperFile') {
+            dir = path.join(__dirname, 'uploads', 'papers');
+        } else {
+            dir = path.join(__dirname, 'uploads', 'algorithms');
         }
-
-        cb(null, teamDir);
+        
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
     },
-    filename: function (req, file, cb) {
-        // Generate unique filename
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    filename: (req, file, cb) => {
+        // Sanitize filename
+        const safeFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, `${Date.now()}-${safeFilename}`);
     }
 });
 
-// File filter function
 const fileFilter = (req, file, cb) => {
-    // Accept zip files only
-    if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) {
-        cb(null, true);
+    if (file.fieldname === 'file') {
+        // For algorithm files, only accept ZIP
+        if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid algorithm file type. Only ZIP files are allowed.'), false);
+        }
+    } else if (file.fieldname === 'paperFile') {
+        // For paper files, only accept PDF
+        if (file.mimetype === 'application/pdf' || file.originalname.endsWith('.pdf')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid paper file type. Only PDF files are allowed.'), false);
+        }
     } else {
-        cb(new Error('Only .zip files are allowed'), false);
+        cb(null, true);
     }
 };
 
-// Configure multer
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE || '50000000') // Default 50MB
+const upload = multer({ 
+    storage, 
+    fileFilter,
+    limits: { 
+        fileSize: 50 * 1024 * 1024  // 50MB limit for algorithm files
     }
 });
 
-// File upload endpoint
-app.post('/api/upload', authenticateToken, upload.single('file'), (req, res) => {
+// Upload endpoint with validation
+app.post('/api/upload', authenticateToken, upload.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'paperFile', maxCount: 1 }
+]), (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
+        // Check for algorithm file
+        if (!req.files || !req.files.file) {
+            return res.status(400).json({ message: 'No algorithm file uploaded or invalid file type' });
         }
-
-        res.status(200).json({
-            message: 'File uploaded successfully',
-            filePath: req.file.path
-        });
+        
+        const { teamName, algorithmName, description, paperType, paperLink } = req.body;
+        
+        // Validate fields
+        if (!teamName || !algorithmName) {
+            return res.status(400).json({ message: 'Team name and algorithm name are required' });
+        }
+        
+        // Validate algorithm name
+        if (!validateAlgorithmName(algorithmName)) {
+            return res.status(400).json({ 
+                message: 'Algorithm name must be 3-50 characters long and contain only letters, numbers, and spaces' 
+            });
+        }
+        
+        // Validate team name
+        if (!validateTeamName(teamName)) {
+            return res.status(400).json({ 
+                message: 'Team name must be 3-30 characters long and contain only letters, numbers, and spaces' 
+            });
+        }
+        
+        // Validate description
+        if (!validateDescription(description)) {
+            return res.status(400).json({
+                message: 'Description must be between 10 and 500 characters'
+            });
+        }
+        
+        // Validate paper submission
+        if (!paperType) {
+            return res.status(400).json({ message: 'Paper submission type is required' });
+        }
+        
+        // For paper link, validate URL
+        if (paperType === 'link') {
+            if (!paperLink || !validateUrl(paperLink)) {
+                return res.status(400).json({ message: 'A valid paper URL is required' });
+            }
+        } 
+        // For paper file, check if file was uploaded
+        else if (paperType === 'file') {
+            if (!req.files.paperFile) {
+                return res.status(400).json({ message: 'Paper file is required' });
+            }
+        }
+        
+        // Prepare response with file paths
+        const response = { 
+            message: 'Files uploaded successfully', 
+            filePath: req.files.file[0].path 
+        };
+        
+        // Add paper file path if uploaded
+        if (req.files.paperFile) {
+            response.paperFilePath = req.files.paperFile[0].path;
+        }
+        
+        res.status(200).json(response);
     } catch (error) {
-        res.status(500).json({ message: 'Upload failed', error: error.message });
+        console.error('Upload error:', error);
+        res.status(500).json({ message: 'File upload failed', error: error.message });
     }
 });
 
