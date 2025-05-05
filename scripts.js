@@ -1126,3 +1126,312 @@ if (registerForm) {
         }
     };
 }
+
+// Initialize the file upload handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle paper submission type toggle
+    const paperSubmissionType = document.getElementById('paperSubmissionType');
+    const paperFileGroup = document.getElementById('paperFileGroup');
+    const paperLinkGroup = document.getElementById('paperLinkGroup');
+    
+    if (paperSubmissionType) {
+        paperSubmissionType.addEventListener('change', function() {
+            if (this.value === 'file') {
+                paperFileGroup.style.display = 'block';
+                paperLinkGroup.style.display = 'none';
+            } else if (this.value === 'link') {
+                paperFileGroup.style.display = 'none';
+                paperLinkGroup.style.display = 'block';
+            } else {
+                paperFileGroup.style.display = 'none';
+                paperLinkGroup.style.display = 'none';
+            }
+        });
+    }
+    
+    // Initialize file upload UI for all file inputs
+    setupFileUploadUI('paperFile');
+    setupFileUploadUI('compressedFile');
+    
+    // Setup auth buttons
+    const authButton = document.getElementById('authButton');
+    const loginToSubmitBtn = document.getElementById('loginToSubmitBtn');
+    const authModal = document.getElementById('authModal');
+    const closeBtn = document.querySelector('.close');
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+    const loginContent = document.getElementById('loginContent');
+    const registerContent = document.getElementById('registerContent');
+    
+    // Setup the login modal and auth-required sections
+    if (authButton) {
+        authButton.addEventListener('click', function() {
+            if (authModal) authModal.style.display = 'block';
+        });
+    }
+    
+    if (loginToSubmitBtn) {
+        loginToSubmitBtn.addEventListener('click', function() {
+            if (authModal) authModal.style.display = 'block';
+        });
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            if (authModal) authModal.style.display = 'none';
+        });
+    }
+    
+    // Tab switching in auth modal
+    if (loginTab && registerTab) {
+        loginTab.addEventListener('click', function() {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginContent.classList.add('active');
+            registerContent.classList.remove('active');
+        });
+        
+        registerTab.addEventListener('click', function() {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerContent.classList.add('active');
+            loginContent.classList.remove('active');
+        });
+    }
+    
+    // Process login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simulate successful login
+            simulateLogin();
+            
+            // Close modal
+            if (authModal) authModal.style.display = 'none';
+        });
+    }
+    
+    // Process register form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate passwords match
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            // Simulate successful registration
+            simulateLogin();
+            
+            // Close modal
+            if (authModal) authModal.style.display = 'none';
+        });
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        if (e.target === authModal) {
+            authModal.style.display = 'none';
+        }
+    });
+    
+    // Team info toggle
+    const changeTeamBtn = document.getElementById('changeTeamBtn');
+    const teamForm = document.getElementById('teamForm');
+    
+    if (changeTeamBtn && teamForm) {
+        changeTeamBtn.addEventListener('click', function() {
+            teamForm.style.display = 'block';
+            this.style.display = 'none';
+        });
+        
+        teamForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const teamName = document.getElementById('teamName').value;
+            
+            // Update team name in the UI
+            document.getElementById('currentTeamDisplay').textContent = teamName;
+            document.getElementById('currentTeam').textContent = teamName;
+            
+            // Hide form, show button
+            teamForm.style.display = 'none';
+            changeTeamBtn.style.display = 'inline-block';
+        });
+    }
+});
+
+/**
+ * Set up the enhanced file upload UI
+ * @param {string} inputId The ID of the file input element
+ */
+function setupFileUploadUI(inputId) {
+    const fileInput = document.getElementById(inputId);
+    if (!fileInput) return;
+    
+    const fileUpload = fileInput.closest('.file-upload');
+    const uploadMessage = fileUpload.querySelector('.upload-message');
+    const filePreview = document.getElementById(inputId + 'Preview');
+    const fileName = filePreview ? filePreview.querySelector('.file-name') : null;
+    const removeButton = filePreview ? filePreview.querySelector('.remove-file') : null;
+    
+    // Update UI when file is selected
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            updateFilePreview(file);
+        }
+    });
+    
+    // Handle drag and drop
+    fileUpload.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+    
+    fileUpload.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+    });
+    
+    fileUpload.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files && files.length > 0) {
+            fileInput.files = files;
+            updateFilePreview(files[0]);
+        }
+    });
+    
+    // Set up remove button
+    if (removeButton) {
+        removeButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Clear file input
+            fileInput.value = '';
+            
+            // Hide preview
+            if (filePreview) filePreview.style.display = 'none';
+            
+            // Reset upload area appearance
+            fileUpload.classList.remove('has-file');
+            if (uploadMessage) uploadMessage.textContent = `Click to upload ${inputId === 'paperFile' ? 'PDF' : 'ZIP'} file`;
+        });
+    }
+    
+    // Helper function to update file preview
+    function updateFilePreview(file) {
+        if (!filePreview || !fileName) return;
+        
+        // Show selected file name
+        fileName.textContent = file.name;
+        filePreview.style.display = 'flex';
+        
+        // Update upload area appearance
+        fileUpload.classList.add('has-file');
+        if (uploadMessage) uploadMessage.textContent = 'File selected:';
+    }
+}
+
+/**
+ * Simulate a successful login
+ */
+function simulateLogin() {
+    // Update auth button
+    const authButton = document.getElementById('authButton');
+    if (authButton) {
+        authButton.textContent = 'My Account';
+        authButton.href = '#submissions';
+    }
+    
+    // Show auth-required sections
+    const authSections = document.querySelectorAll('.auth-required');
+    authSections.forEach(function(section) {
+        section.style.display = 'block';
+    });
+    
+    // Hide login message
+    const loginMessage = document.getElementById('submit-login-message');
+    if (loginMessage) {
+        loginMessage.style.display = 'none';
+    }
+    
+    // Hide auth-required links that would redirect to login
+    const authLinks = document.querySelectorAll('.auth-required-link');
+    authLinks.forEach(function(link) {
+        link.classList.remove('auth-required-link');
+    });
+    
+    // Set default team name if not already set
+    const currentTeamDisplay = document.getElementById('currentTeamDisplay');
+    const currentTeam = document.getElementById('currentTeam');
+    
+    if (currentTeamDisplay && currentTeamDisplay.textContent === 'Not Set') {
+        const teamName = document.getElementById('registerTeamName') ? 
+            document.getElementById('registerTeamName').value : 'Demo Team';
+        
+        currentTeamDisplay.textContent = teamName;
+        if (currentTeam) currentTeam.textContent = teamName;
+    }
+    
+    // Set demo values for dashboard
+    document.getElementById('highScore').textContent = '0.00';
+    document.getElementById('totalSubmissions').textContent = '0';
+}
+
+// Function to validate the submission form
+function validateSubmissionForm() {
+    let isValid = true;
+    
+    // Remove all error messages first
+    const errorElements = document.querySelectorAll('.validation-error');
+    errorElements.forEach(element => element.remove());
+
+    // Check algorithm name
+    const algorithmName = document.getElementById('algorithmName');
+    if (!algorithmName || !algorithmName.value.trim()) {
+        displayValidationError(algorithmName, 'Please enter an algorithm name.');
+        isValid = false;
+    }
+    
+    // Check submission type if paper is required
+    const paperSubmissionType = document.getElementById('paperSubmissionType');
+    if (paperSubmissionType && paperSubmissionType.value) {
+        if (paperSubmissionType.value === 'file') {
+            const paperFile = document.getElementById('paperFile');
+            if (!paperFile || !paperFile.files || paperFile.files.length === 0) {
+                displayValidationError(paperFile, 'Please select a PDF file for your paper.');
+                isValid = false;
+            }
+        } else if (paperSubmissionType.value === 'link') {
+            const paperLink = document.getElementById('paperLink');
+            if (!paperLink || !paperLink.value.trim()) {
+                displayValidationError(paperLink, 'Please provide a link to your paper.');
+                isValid = false;
+            }
+        }
+    }
+    
+    // Algorithm description is optional, no validation needed
+    
+    // Check algorithm implementation file
+    const fileInput = document.getElementById('compressedFile');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        displayValidationError(fileInput, 'Please select a ZIP file containing your algorithm implementation.');
+        isValid = false;
+    }
+    
+    return isValid;
+}

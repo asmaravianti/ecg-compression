@@ -1123,7 +1123,7 @@ section[id] {
     animation: shimmer 1.5s infinite;
 }
 
-/* File upload improvements */
+/* Enhanced File Upload Styles */
 .file-upload {
     position: relative;
     display: flex;
@@ -1138,9 +1138,14 @@ section[id] {
     text-align: center;
 }
 
-.file-upload:hover {
+.file-upload:hover, .file-upload.drag-over {
     border-color: var(--accent);
     background-color: rgba(52, 152, 219, 0.1);
+}
+
+.file-upload.has-file {
+    border-color: var(--success);
+    background-color: rgba(46, 204, 113, 0.05);
 }
 
 .file-upload input[type="file"] {
@@ -1167,6 +1172,54 @@ section[id] {
 .file-upload small {
     color: #6c757d;
     margin-top: 0.5rem;
+}
+
+/* File Preview */
+.file-preview {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 400px;
+    animation: fadeIn 0.3s ease;
+}
+
+.file-name {
+    font-weight: 500;
+    color: var(--primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+}
+
+.remove-file {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.remove-file:hover {
+    color: var(--error);
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+/* Optional Field Label */
+.optional-label {
+    font-weight: normal;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
 }
 
 /* Toast notification */
@@ -1565,4 +1618,60 @@ section[id] {
     display: flex;
     justify-content: center;
     margin: 15px 0;
+}
+
+/* Status indicators for submission results */
+.status-success {
+    color: var(--success);
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-success::before {
+    content: "✓";
+    margin-right: 5px;
+}
+
+.status-processing {
+    color: var(--warning);
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-processing::before {
+    content: "⟳";
+    margin-right: 5px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Loading state for content areas */
+.loading {
+    position: relative;
+    padding: 15px;
+    text-align: center;
+    color: var(--text);
+    background-color: rgba(255,255,255,0.7);
+    border-radius: 8px;
+}
+
+.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--accent);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
 }
