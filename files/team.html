@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team - ECG Compression Benchmark</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // 登录校验
+        if (!localStorage.getItem('authToken')) {
+            alert("Please login first.");
+            window.location.href = "index.html";
+        }
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="index.html" class="brand">ECG Benchmark</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="team.html">Team</a>
+            <a href="index.html#leaderboard">Leaderboard</a>
+            <a href="index.html#submissions">My Submissions</a>
+            <a href="index.html#forum">Forum</a>
+            <a href="index.html#terms">Terms</a>
+            <a href="#" class="btn btn-primary" id="authButton">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Team Section -->
+    <section class="content-section" id="team">
+        <h2>Team Management</h2>
+
+        <div class="team-registration">
+            <h3>Set Team Name</h3>
+            <form id="teamForm" class="submission-form">
+                <div class="form-group">
+                    <label for="teamName">Team Name</label>
+                    <input type="text" id="teamName" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Team</button>
+            </form>
+        </div>
+
+        <div class="team-submissions">
+            <h3>Team Submissions</h3>
+            <form id="teamSubmissionForm" class="submission-form">
+                <div class="form-group">
+                    <label for="teamAlgorithm">Algorithm Name</label>
+                    <input type="text" id="teamAlgorithm" required>
+                </div>
+                <div class="form-group">
+                    <label for="teamCompressedFile">Compressed File (.zip)</label>
+                    <input type="file" id="teamCompressedFile" accept=".zip" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Team Entry</button>
+            </form>
+        </div>
+
+        <div class="team-progress">
+            <h3>Current Team: <span id="currentTeam">Not Set</span></h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Highest Score</h3>
+                    <div class="metric-value" id="highScore">0</div>
+                    <p class="metric-team">Current Team</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Submissions</h3>
+                    <div class="metric-value" id="totalSubmissions">0</div>
+                    <p class="metric-team">Current Team</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="content-section" id="leaderboard">
+        <h2>Current Rankings</h2>
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Team</th>
+                    <th>CR</th>
+                    <th>PRD</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>SignalPros</td>
+                    <td>48.2</td>
+                    <td>0.0021</td>
+                    <td>94.5</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- My Submissions -->
+    <section class="content-section" id="submissions">
+        <h2>My Submissions</h2>
+        <div class="submission-history" id="submissionHistory"></div>
+    </section>
+
+    <script src="scripts.js"></script>
+    <script>
+        // logout 按钮逻辑
+        document.getElementById("authButton").addEventListener("click", () => {
+            localStorage.removeItem("authToken");
+            alert("You have been logged out.");
+            window.location.href = "index.html";
+        });
+    </script>
+</body>
+</html>
