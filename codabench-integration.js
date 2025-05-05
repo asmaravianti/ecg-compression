@@ -28,14 +28,20 @@ class CodabenchIntegration {
                 // Generate a fake submission ID
                 const submissionId = 'sub_' + Math.random().toString(36).substring(2, 10);
                 
+                // Get form values safely
+                const algorithmName = formData.get('algorithmName') || 'Unnamed Algorithm';
+                const algorithmDescription = formData.get('algorithmDescription') || '';
+                const compressedFile = formData.get('compressedFile');
+                const fileName = compressedFile ? compressedFile.name : 'unknown.zip';
+                
                 // Store the submission data locally
                 this.saveSubmission({
                     submission_id: submissionId,
-                    method_name: formData.get('algorithmName'),
-                    description: formData.get('algorithmDescription') || '',
+                    method_name: algorithmName,
+                    description: algorithmDescription,
                     created_at: new Date().toISOString(),
                     status: 'processing',
-                    file_name: formData.get('compressedFile').name
+                    file_name: fileName
                 });
                 
                 // Show success message
@@ -324,32 +330,69 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             
-            // Validate form
-            if (!validateSubmissionForm()) {
-                return;
-            }
-            
-            // Create FormData object
-            const formData = new FormData(form);
-            
             try {
-                // Submit to Codabench
-                const result = await codabench.submitAlgorithm(formData);
-                
-                // Start polling for results
-                if (result && result.submission_id) {
-                    pollResults(result.submission_id);
+                // Validate form
+                if (!validateSubmissionForm()) {
+                    return;
                 }
                 
-                // Clear form
-                form.reset();
+                // Disable form elements to prevent double submission
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    const originalText = submitButton.textContent;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.disabled = true;
+                }
                 
-                // Update submissions section if it exists
-                updateSubmissionsSection();
+                // Create FormData object
+                const formData = new FormData(form);
+                
+                try {
+                    // Submit to Codabench
+                    const result = await codabench.submitAlgorithm(formData);
+                    
+                    // Start polling for results
+                    if (result && result.submission_id) {
+                        pollResults(result.submission_id);
+                    }
+                    
+                    // Clear form after successful submission
+                    form.reset();
+                    
+                    // Reset file upload UI elements
+                    resetFileUploadUI('paperFile');
+                    resetFileUploadUI('compressedFile');
+                    
+                    // Update submissions section if it exists
+                    updateSubmissionsSection();
+                } catch (error) {
+                    console.error('Submission failed:', error);
+                    codabench.showToast(`Submission failed: ${error.message}`, 'error');
+                } finally {
+                    // Re-enable form elements
+                    if (submitButton) {
+                        submitButton.textContent = 'Submit Entry';
+                        submitButton.disabled = false;
+                    }
+                }
             } catch (error) {
-                console.error('Submission failed:', error);
+                console.error('Form submission error:', error);
+                codabench.showToast('An unexpected error occurred. Please try again.', 'error');
             }
         });
+    }
+    
+    // Function to reset file upload UI
+    function resetFileUploadUI(inputId) {
+        const filePreview = document.getElementById(`${inputId}Preview`);
+        const fileUpload = document.getElementById(inputId)?.closest('.file-upload');
+        const uploadMessage = fileUpload?.querySelector('.upload-message');
+        
+        if (filePreview) filePreview.style.display = 'none';
+        if (fileUpload) fileUpload.classList.remove('has-file');
+        if (uploadMessage) {
+            uploadMessage.textContent = `Click to upload ${inputId === 'paperFile' ? 'PDF' : 'ZIP'} file`;
+        }
     }
     
     // Function to poll for results
@@ -450,41 +493,47 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to validate the submission form
     function validateSubmissionForm() {
-        // Check algorithm name
-        const algorithmName = document.getElementById('algorithmName');
-        if (!algorithmName || !algorithmName.value.trim()) {
-            codabench.showToast('Please enter an algorithm name.', 'error');
-            return false;
-        }
-        
-        // Check submission type if paper is required
-        const paperSubmissionType = document.getElementById('paperSubmissionType');
-        if (paperSubmissionType && paperSubmissionType.value) {
-            if (paperSubmissionType.value === 'file') {
-                const paperFile = document.getElementById('paperFile');
-                if (!paperFile || !paperFile.files || paperFile.files.length === 0) {
-                    codabench.showToast('Please select a PDF file for your paper.', 'error');
-                    return false;
-                }
-            } else if (paperSubmissionType.value === 'link') {
-                const paperLink = document.getElementById('paperLink');
-                if (!paperLink || !paperLink.value.trim()) {
-                    codabench.showToast('Please provide a link to your paper.', 'error');
-                    return false;
+        try {
+            // Check algorithm name
+            const algorithmName = document.getElementById('algorithmName');
+            if (!algorithmName || !algorithmName.value.trim()) {
+                codabench.showToast('Please enter an algorithm name.', 'error');
+                return false;
+            }
+            
+            // Check submission type if paper is required
+            const paperSubmissionType = document.getElementById('paperSubmissionType');
+            if (paperSubmissionType && paperSubmissionType.value) {
+                if (paperSubmissionType.value === 'file') {
+                    const paperFile = document.getElementById('paperFile');
+                    if (!paperFile || !paperFile.files || paperFile.files.length === 0) {
+                        codabench.showToast('Please select a PDF file for your paper.', 'error');
+                        return false;
+                    }
+                } else if (paperSubmissionType.value === 'link') {
+                    const paperLink = document.getElementById('paperLink');
+                    if (!paperLink || !paperLink.value.trim()) {
+                        codabench.showToast('Please provide a link to your paper.', 'error');
+                        return false;
+                    }
                 }
             }
-        }
-        
-        // Algorithm description is optional, no need to validate
-        
-        // Check algorithm implementation file
-        const fileInput = document.getElementById('compressedFile');
-        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-            codabench.showToast('Please select a ZIP file containing your algorithm implementation.', 'error');
+            
+            // Algorithm description is optional, no need to validate
+            
+            // Check algorithm implementation file
+            const fileInput = document.getElementById('compressedFile');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                codabench.showToast('Please select a ZIP file containing your algorithm implementation.', 'error');
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Validation error:', error);
+            codabench.showToast('An error occurred during form validation. Please try again.', 'error');
             return false;
         }
-        
-        return true;
     }
     
     // Load user submissions if on the submissions page
