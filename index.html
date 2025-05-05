@@ -25,11 +25,18 @@
 
     <!-- Hero Section -->
     <section class="hero" id="home">
-        <h1>ECG Compression Challenge</h1>
-        <p>Optimize signal compression algorithms for cardiac data analysis</p>
-        <div class="cta-buttons">
-            <a href="#submit" class="btn btn-primary" id="getStartedBtn">Get Started</a>
-            <a href="#evaluation" class="btn btn-secondary">Learn More</a>
+        <div class="hero-content">
+            <h1>ECG Compression Challenge</h1>
+            <p>Optimize signal compression algorithms for cardiac data analysis</p>
+            <div class="cta-buttons">
+                <a href="#submit" class="btn btn-primary" id="getStartedBtn">Get Started</a>
+                <a href="#evaluation" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+        <div class="hero-graphic">
+            <svg viewBox="0 0 600 200" class="ecg-animation">
+                <polyline class="ecg-line" points="0,100 30,100 45,100 50,100 55,80 60,120 65,100 70,100 80,100 100,100 110,100 115,100 120,60 125,140 130,100 135,100 150,100 200,100 210,100 215,100 220,80 225,120 230,100 235,100 250,100 300,100 310,100 315,100 320,60 325,140 330,100 335,100 350,100 400,100 410,100 415,100 420,80 425,120 430,100 435,100 450,100 500,100 510,100 515,100 520,60 525,140 530,100 535,100 550,100 600,100" />
+            </svg>
         </div>
     </section>
 
@@ -61,7 +68,6 @@
             <p>Sampling Frequency: 360 Hz</p>
             <div class="download-buttons">
                 <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-primary" download>Download Sample</a>
-                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-secondary" download>Download Dataset (1.2GB)</a>
             </div>
         </div>
     </section>
@@ -268,7 +274,12 @@
             
             <div class="form-group" id="paperFileGroup" style="display: none;">
                 <label for="paperFile">Paper File (PDF)</label>
-                <input type="file" id="paperFile" accept=".pdf">
+                <div class="file-upload">
+                    <i>📄</i>
+                    <p>Click to upload PDF file</p>
+                    <small>or drag and drop your paper here</small>
+                    <input type="file" id="paperFile" accept=".pdf">
+                </div>
                 <small class="form-hint">Upload your research paper, thesis, or journal article as PDF (max 10MB)</small>
             </div>
             
@@ -286,7 +297,12 @@
 
             <div class="form-group">
                 <label for="compressedFile">Algorithm Implementation (.zip)</label>
-                <input type="file" id="compressedFile" accept=".zip" required>
+                <div class="file-upload">
+                    <i>📦</i>
+                    <p>Click to upload ZIP file</p>
+                    <small>or drag and drop your implementation here</small>
+                    <input type="file" id="compressedFile" accept=".zip" required>
+                </div>
                 <small class="form-hint">Upload your algorithm implementation as a ZIP file containing all necessary code and documentation</small>
             </div>
 

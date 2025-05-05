@@ -1,5 +1,26 @@
 // Form Validation
 document.addEventListener("DOMContentLoaded", () => {
+    // Mobile menu functionality
+    const mobileMenuBtn = document.createElement('button');
+    mobileMenuBtn.className = 'mobile-menu-btn';
+    mobileMenuBtn.innerHTML = '☰';
+    document.querySelector('.navbar').appendChild(mobileMenuBtn);
+    
+    mobileMenuBtn.addEventListener('click', () => {
+        const navLinks = document.querySelector('.nav-links');
+        navLinks.classList.toggle('active');
+    });
+    
+    // Close mobile menu when clicking elsewhere
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.mobile-menu-btn') && !e.target.closest('.nav-links')) {
+            const navLinks = document.querySelector('.nav-links');
+            if (navLinks && navLinks.classList.contains('active')) {
+                navLinks.classList.remove('active');
+            }
+        }
+    });
+
     // Setup tab switching for auth modal
     const loginTab = document.getElementById('loginTab');
     const registerTab = document.getElementById('registerTab');
@@ -954,4 +975,127 @@ async function fetchLeaderboard() {
     } catch (error) {
         console.error('Leaderboard fetch error:', error);
     }
+}
+
+// Function to display toast notifications
+function showToast(message, type = 'info') {
+    // Remove any existing toasts
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    // Set toast icon based on type
+    let icon = '🔔';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+    
+    // Populate toast content
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close">×</button>
+    `;
+    
+    // Add to document
+    document.body.appendChild(toast);
+    
+    // Setup close button
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.remove();
+    });
+    
+    // Auto close after 5 seconds
+    setTimeout(() => {
+        if (document.body.contains(toast)) {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+}
+
+// Update form validation to use toasts
+function displayValidationError(inputElement, errorMessage) {
+    // Remove any existing error message
+    const existingError = inputElement.parentElement.querySelector('.validation-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add error message if one exists
+    if (errorMessage) {
+        const errorElement = document.createElement('div');
+        errorElement.className = 'validation-error';
+        errorElement.textContent = errorMessage;
+        inputElement.parentElement.appendChild(errorElement);
+        inputElement.classList.add('invalid');
+        
+        // Also show a toast for critical errors
+        if (inputElement.required) {
+            showToast(errorMessage, 'error');
+        }
+    } else {
+        inputElement.classList.remove('invalid');
+        
+        // Add validated class when input is valid
+        if (inputElement.value) {
+            inputElement.classList.add('input-validated');
+        }
+    }
+}
+
+// Setup responsive navigation
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
+});
+
+// Show success toast after successful form submissions
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    const originalSubmitHandler = loginForm.onsubmit;
+    loginForm.onsubmit = async function(e) {
+        e.preventDefault();
+        
+        try {
+            // Call original handler if it exists
+            if (originalSubmitHandler) {
+                await originalSubmitHandler.call(this, e);
+            }
+            
+            // If no exceptions were thrown, show success message
+            showToast('Login successful!', 'success');
+        } catch (error) {
+            // Error will be shown by the original handler
+        }
+    };
+}
+
+const registerForm = document.getElementById('registerForm');
+if (registerForm) {
+    const originalSubmitHandler = registerForm.onsubmit;
+    registerForm.onsubmit = async function(e) {
+        e.preventDefault();
+        
+        try {
+            // Call original handler if it exists
+            if (originalSubmitHandler) {
+                await originalSubmitHandler.call(this, e);
+            }
+            
+            // If no exceptions were thrown, show success message
+            showToast('Registration successful!', 'success');
+        } catch (error) {
+            // Error will be shown by the original handler
+        }
+    };
 }

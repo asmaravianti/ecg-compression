@@ -55,7 +55,12 @@
                 </div>
                 <div class="form-group">
                     <label for="teamCompressedFile">Compressed File (.zip)</label>
-                    <input type="file" id="teamCompressedFile" accept=".zip" required>
+                    <div class="file-upload">
+                        <i>📦</i>
+                        <p>Click to upload ZIP file</p>
+                        <small>or drag and drop your implementation here</small>
+                        <input type="file" id="teamCompressedFile" accept=".zip" required>
+                    </div>
                     <small class="form-hint">Only .zip files are accepted</small>
                 </div>
                 <button type="submit" class="btn btn-primary">Submit Team Entry</button>
