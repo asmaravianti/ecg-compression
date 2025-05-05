@@ -1218,3 +1218,334 @@ section[id] {
 .toast-close:hover {
     color: var(--text);
 }
+
+/* Evaluation Section Styles */
+.evaluation-intro {
+    background-color: rgba(52, 152, 219, 0.1);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+    box-shadow: var(--card-shadow);
+}
+
+.eval-icon {
+    font-size: 3rem;
+    color: var(--accent);
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.evaluation-intro p {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.evaluation-intro strong {
+    color: var(--accent);
+}
+
+.metrics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0 4rem;
+}
+
+.metric-block {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: all var(--transition-speed);
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    border-top: 4px solid var(--accent);
+}
+
+.metric-block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+}
+
+.metric-block.highlight {
+    border-top: 4px solid var(--secondary);
+    background-color: rgba(231, 76, 60, 0.05);
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: rgba(0,0,0,0.02);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.metric-icon {
+    font-size: 2rem;
+}
+
+.metric-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--primary);
+}
+
+.metric-content {
+    padding: 1.5rem;
+}
+
+.metric-definition, .metric-goal, .metric-example {
+    margin-bottom: 1.5rem;
+}
+
+.metric-definition h4, .formula-block h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.goal-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.formula-block {
+    background-color: rgba(0,0,0,0.02);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+}
+
+.formula-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.fraction {
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0 0.2em;
+    text-align: center;
+}
+
+.fraction > span {
+    display: block;
+    padding: 0.1em;
+}
+
+.fraction > .numerator {
+    border-bottom: 1px solid;
+    padding: 0.1em 0.3em;
+}
+
+.fraction > .denominator {
+    padding: 0.1em 0.3em;
+}
+
+.formula-note {
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+/* Process Steps */
+.process-block {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+    margin-top: 3rem;
+    text-align: left;
+}
+
+.process-block h3 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--primary);
+    position: relative;
+}
+
+.process-block h3::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: var(--accent);
+}
+
+.process-steps {
+    position: relative;
+}
+
+.process-steps::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 25px;
+    width: 2px;
+    background-color: var(--border);
+}
+
+.process-step {
+    display: flex;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.process-step:last-child {
+    margin-bottom: 0;
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-right: 1.5rem;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+    padding-top: 0.5rem;
+}
+
+.step-content h4 {
+    margin: 0 0 1rem;
+    color: var(--primary);
+}
+
+.output-requirements {
+    background-color: rgba(0,0,0,0.02);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin: 1rem 0;
+}
+
+.output-requirements li {
+    margin-bottom: 0.5rem;
+}
+
+.output-requirements li code {
+    background-color: rgba(0,0,0,0.05);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Responsive styles for evaluation section */
+@media (max-width: 768px) {
+    .evaluation-intro {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .metrics-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .process-steps::before {
+        left: 20px;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .formula-display {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .metric-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .process-step {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .process-steps::before {
+        display: none;
+    }
+    
+    .step-number {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animation for pulse effect on hover */
+.pulse-animation {
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.formula-variables {
+    list-style-type: none;
+    padding: 0.5rem 0;
+    margin: 1rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem 2rem;
+}
+
+.formula-variables li {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.formula-variables code {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0,0,0,0.05);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .formula-variables {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}

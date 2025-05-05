@@ -77,122 +77,162 @@
     <section class="content-section" id="evaluation">
         <h2>Evaluation</h2>
 
-        <p>
-            The performance of each submission is evaluated based on the following metrics.
-            Higher compression ratio (CR) is better for storage/transmission efficiency,
-            while lower percentage root mean square difference (PRD) indicates more accurate
-            signal reconstruction. Finally, an overall score balances both factors.
-        </p>
-
-        <!-- 1. Compression Ratio (CR) -->
-        <div class="metric-block">
-            <h3>1. Compression Ratio (CR)</h3>
+        <div class="evaluation-intro">
+            <div class="eval-icon">📊</div>
             <p>
-                <strong>Definition:</strong> The ratio of the original signal length to the compressed signal length.
-            </p>
-            <p>
-                <strong>Formula:</strong><br>
-                <div class="formula-block"><code>CR = (Original Signal Length) / (Compressed Signal Length)</code></div>
-            </p>
-            <p>
-                <strong>Goal:</strong> Higher CR values indicate better compression efficiency.
+                Your algorithm will be scored on its ability to <strong>compress ECG signals efficiently</strong> 
+                while <strong>preserving essential diagnostic information</strong>. The perfect balance 
+                between size reduction and signal fidelity will top our leaderboard!
             </p>
         </div>
 
-        <!-- 2. Percentage Root Mean Square Difference (PRD) -->
-        <div class="metric-block">
-            <h3>2. Percentage Root Mean Square Difference (PRD)</h3>
-            <p>
-                <strong>Definition:</strong> The error percentage between the reconstructed signal and
-                the original signal, normalized by the signal's variability.
-            </p>
-            <p>
-                <strong>Formula:</strong><br>
-                <div class="formula-block">
-                    <code>
-                        PRD =
-                        [ sqrt( Σ ( fᵢ - f̂ᵢ )² ) / sqrt( Σ ( fᵢ - f̄ )² ) ] × 100
-                    </code>
+        <div class="metrics-container">
+            <!-- 1. Compression Ratio (CR) -->
+            <div class="metric-block">
+                <div class="metric-header">
+                    <div class="metric-icon">📉</div>
+                    <h3>Compression Ratio (CR)</h3>
                 </div>
-            </p>
-            <ul>
-                <li><code>fᵢ</code>: Original signal value at point <em>i</em>.</li>
-                <li><code>f̂ᵢ</code>: Reconstructed signal value at point <em>i</em>.</li>
-                <li><code>f̄</code>: Mean value of the original signal.</li>
-                <li><code>N</code>: Total number of data points.</li>
-            </ul>
-            <p>
-                <strong>Goal:</strong> Lower PRD values indicate better reconstruction quality.
-            </p>
-        </div>
+                <div class="metric-content">
+                    <div class="metric-definition">
+                        <h4>What it measures:</h4>
+                        <p>The ratio of the original signal length to the compressed signal length.</p>
+                    </div>
+                    <div class="formula-block">
+                        <h4>Formula:</h4>
+                        <div class="formula-display">
+                            CR = <div class="fraction"><span class="numerator">Original Signal Length</span><span class="denominator">Compressed Signal Length</span></div>
+                        </div>
+                    </div>
+                    <div class="metric-goal">
+                        <span class="goal-icon">🎯</span>
+                        <p><strong>Goal:</strong> Higher CR values indicate better compression efficiency.</p>
+                    </div>
+                    <div class="metric-example">
+                        <p>Example: A 100MB signal compressed to 2MB yields CR = 50:1</p>
+                    </div>
+                </div>
+            </div>
 
-        <!-- 3. Overall Score -->
-        <div class="metric-block">
-            <h3>3. Overall Score</h3>
-            <p>
-                <strong>Definition:</strong> A combined score that balances compression efficiency and
-                reconstruction accuracy.
-            </p>
-            <p>
-                <strong>Formula:</strong><br>
-                <div class="formula-block"><code>Score = CR / (PRD + ε)</code></div>
-                <br>
-                where <em>ε</em> is a small constant (e.g., 1×10<sup>-6</sup>) to avoid division by zero.
-            </p>
-            <p>
-                <strong>Goal:</strong> Higher scores indicate better overall performance.
-            </p>
+            <!-- 2. Percentage Root Mean Square Difference (PRD) -->
+            <div class="metric-block">
+                <div class="metric-header">
+                    <div class="metric-icon">🔍</div>
+                    <h3>Percentage Root Mean Square Difference (PRD)</h3>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-definition">
+                        <h4>What it measures:</h4>
+                        <p>The error percentage between the reconstructed signal and the original signal, normalized by the signal's variability.</p>
+                    </div>
+                    <div class="formula-block">
+                        <h4>Formula:</h4>
+                        <div class="formula-display">
+                            PRD = <div class="fraction">
+                                <span class="numerator">√(Σ(fᵢ - f̂ᵢ)²)</span>
+                                <span class="denominator">√(Σ(fᵢ - f̄)²)</span>
+                            </div> × 100
+                        </div>
+                        <ul class="formula-variables">
+                            <li><code>fᵢ</code>: Original signal value at point <em>i</em>.</li>
+                            <li><code>f̂ᵢ</code>: Reconstructed signal value at point <em>i</em>.</li>
+                            <li><code>f̄</code>: Mean value of the original signal.</li>
+                            <li><code>N</code>: Total number of data points.</li>
+                        </ul>
+                    </div>
+                    <div class="metric-goal">
+                        <span class="goal-icon">🎯</span>
+                        <p><strong>Goal:</strong> Lower PRD values indicate better reconstruction quality.</p>
+                    </div>
+                    <div class="metric-example">
+                        <p>Example: PRD of 2% means excellent reconstruction with minimal distortion</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Overall Score -->
+            <div class="metric-block highlight">
+                <div class="metric-header">
+                    <div class="metric-icon">🏆</div>
+                    <h3>Overall Score</h3>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-definition">
+                        <h4>What it measures:</h4>
+                        <p>A combined score that balances compression efficiency and reconstruction accuracy.</p>
+                    </div>
+                    <div class="formula-block">
+                        <h4>Formula:</h4>
+                        <div class="formula-display">
+                            Score = <div class="fraction">
+                                <span class="numerator">CR</span>
+                                <span class="denominator">PRD + ε</span>
+                            </div>
+                        </div>
+                        <p class="formula-note">where <em>ε</em> is a small constant (e.g., 1×10<sup>-6</sup>) to avoid division by zero.</p>
+                    </div>
+                    <div class="metric-goal">
+                        <span class="goal-icon">🏆</span>
+                        <p><strong>Goal:</strong> Higher scores indicate better overall performance.</p>
+                    </div>
+                    <div class="metric-example">
+                        <p>The score rewards algorithms that achieve high compression while maintaining signal accuracy</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 4. Evaluation Process -->
         <div class="process-block">
-            <h3>4. Evaluation Process</h3>
-
-            <!-- Step 1: Input Data -->
-            <div class="process-step">
-                <h4>Step 1: Input Data</h4>
-                <p>
-                    Participants are provided with ECG signals in <code>.mat</code> format (e.g.,
-                    <em>PhysioNet_MITBIH_rec117_5min.mat</em>). Each file contains a single ECG recording.
-                </p>
-            </div>
-
-            <!-- Step 2: Output Requirements -->
-            <div class="process-step">
-                <h4>Step 2: Output Requirements</h4>
-                <p>
-                    Participants must submit a compressed signal and a reconstructed signal.
-                    The output files must be in <code>.mat</code> format and include:
-                </p>
-                <ul>
-                    <li><code>f_recon</code>: The reconstructed ECG signal.</li>
-                    <li><code>CR_val</code>: The compression ratio.</li>
-                </ul>
-            </div>
-
-            <!-- Step 3: Scoring -->
-            <div class="process-step">
-                <h4>Step 3: Scoring</h4>
-                <p>
-                    The scoring program computes the CR and PRD for each submission.
-                    The Overall Score is calculated as:
-                </p>
-                <div class="formula-block">
-                    <code>Score = CR / (PRD + ε)</code>
+            <h3>Evaluation Process</h3>
+            <div class="process-steps">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Input Data</h4>
+                        <p>
+                            You'll receive ECG signals in <code>.mat</code> format from the PhysioNet MIT-BIH database.
+                            Try the sample first to test your algorithm.
+                        </p>
+                    </div>
                 </div>
-                <p>
-                    The final score is the average score across all datasets.
-                </p>
-            </div>
 
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Output Requirements</h4>
+                        <p>
+                            Submit your compressed signal and reconstructed signal in <code>.mat</code> format, 
+                            along with your calculated compression ratio.
+                        </p>
+                        <ul class="output-requirements">
+                            <li><code>f_recon</code>: The reconstructed ECG signal</li>
+                            <li><code>CR_val</code>: Your calculated compression ratio</li>
+                        </ul>
+                    </div>
+                </div>
 
-            <!-- Step 4: Leaderboard -->
-            <div class="process-step">
-                <h4>Step 4: Leaderboard</h4>
-                <p>
-                    Submissions are ranked based on the Overall Score.
-                    Detailed results (including CR and PRD) are displayed for each dataset.
-                </p>
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Scoring</h4>
+                        <p>
+                            Our system computes the CR and PRD metrics from your submission
+                            and calculates your overall score.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Leaderboard</h4>
+                        <p>
+                            Results are ranked on the leaderboard based on the Overall Score.
+                            Detailed metrics are provided for each submission.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -334,8 +374,8 @@
     </section>
     <hr>
 
-    <!-- Forum Section -->
-    <section class="content-section" id="forum">
+    <!-- Forum Section - Hidden for now -->
+    <section class="content-section" id="forum" style="display: none;">
         <h2>Discussion Forum</h2>
         <div class="forum-container" id="forumContainer">
             <div class="forum-post">

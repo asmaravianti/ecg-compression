@@ -129,18 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Forum Interaction
-    const forumContainer = document.getElementById('forumContainer');
-    if (forumContainer) {
-        forumContainer.innerHTML = `
-            <div class="forum-post">
-                <h3>Dataset Format Clarification</h3>
-                <p>Posted by: User123 | 2 hours ago</p>
-                <p>Can someone clarify the expected format for the reconstructed signals?</p>
-                <button class="btn btn-primary">Reply</button>
-            </div>
-        `;
-    }
+    // Evaluation section interactions
+    setupEvaluationInteractions();
 
     // Submission History initial setup
     const submissionHistoryElement = document.getElementById('submissionHistory');
@@ -149,6 +139,43 @@ document.addEventListener("DOMContentLoaded", () => {
         loadSubmissionHistory();
     }
 });
+
+// Set up interactions for the evaluation section
+function setupEvaluationInteractions() {
+    // Add pulse effect on hover for metric blocks
+    document.querySelectorAll('.metric-block').forEach(block => {
+        block.addEventListener('mouseenter', function() {
+            this.querySelector('.metric-icon')?.classList.add('pulse-animation');
+        });
+        
+        block.addEventListener('mouseleave', function() {
+            this.querySelector('.metric-icon')?.classList.remove('pulse-animation');
+        });
+    });
+    
+    // Add numbered labels to process steps on small screens
+    if (window.innerWidth <= 480) {
+        document.querySelectorAll('.process-step').forEach((step, index) => {
+            const stepContent = step.querySelector('.step-content h4');
+            if (stepContent) {
+                stepContent.textContent = `Step ${index + 1}: ${stepContent.textContent}`;
+            }
+        });
+    }
+    
+    // Interactive formulas - highlight parts on hover
+    document.querySelectorAll('.formula-display .fraction').forEach(fraction => {
+        fraction.addEventListener('mouseenter', function() {
+            this.style.color = 'var(--accent)';
+            this.style.transform = 'scale(1.1)';
+        });
+        
+        fraction.addEventListener('mouseleave', function() {
+            this.style.color = '';
+            this.style.transform = '';
+        });
+    });
+}
 
 // Setup Authentication Form Validation
 function setupAuthFormValidation() {
