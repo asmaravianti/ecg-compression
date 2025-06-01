@@ -1,0 +1,17 @@
+[
+  {
+    "teamName": "TeamB",
+    "email": "b@example.com",
+    "password": "$2b$10$Mtlukr4MDDmnc2ZcQQ3ySeuzxinWN4UJ5ZOwRPAVERssILnXWG57u"
+  },
+  {
+    "teamName": "TeamC",
+    "email": "c@example.com",
+    "password": "$2b$10$sYHI/JlIf1oWun7259tyg.aM2tcs.PmOLSWAi7Tb8SWUf0gxPHJla"
+  },
+  {
+    "teamName": "TestTeam",
+    "email": "test@example.com",
+    "password": "$2b$10$Ql0o3I46ktduLVLtZRGZru6mt.fNmXMJ.7psQUz0.DuckoSiW/BNG"
+  }
+]

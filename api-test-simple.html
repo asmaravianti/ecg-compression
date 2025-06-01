@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        input {
+            width: 200px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 ECG平台 API 简单测试</h1>
+    <p>当前API地址: <code id="apiUrl"></code></p>
+
+    <div class="test-card">
+        <h3>🏥 服务器健康检查</h3>
+        <button onclick="testHealth()">测试健康检查</button>
+        <button onclick="testStatus()">测试API状态</button>
+        <div class="log" id="healthLog">等待测试...</div>
+    </div>
+
+    <div class="test-card">
+        <h3>📝 注册测试</h3>
+        <input type="text" id="regTeam" placeholder="团队名" value="TestTeam2024">
+        <input type="email" id="regEmail" placeholder="邮箱" value="test@example.com">
+        <input type="password" id="regPassword" placeholder="密码" value="password123">
+        <br>
+        <button onclick="testRegister()">测试注册</button>
+        <div class="log" id="registerLog">等待测试...</div>
+    </div>
+
+    <div class="test-card">
+        <h3>🔐 登录测试</h3>
+        <input type="text" id="loginTeam" placeholder="团队名" value="TestTeam2024">
+        <input type="password" id="loginPassword" placeholder="密码" value="password123">
+        <br>
+        <button onclick="testLogin()">测试登录</button>
+        <div class="log" id="loginLog">等待测试...</div>
+    </div>
+
+    <div class="test-card">
+        <h3>👥 用户查看</h3>
+        <button onclick="viewUsers()">查看所有用户</button>
+        <div class="log" id="usersLog">等待测试...</div>
+    </div>
+
+    <script>
+        const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+        document.getElementById('apiUrl').textContent = API_BASE_URL;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            element.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        async function testHealth() {
+            log('healthLog', '正在测试健康检查...');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('healthLog', `健康检查成功: ${data.message}`, 'success');
+                    log('healthLog', `服务器运行时间: ${data.uptime}秒`);
+                } else {
+                    log('healthLog', `健康检查失败: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('healthLog', `连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStatus() {
+            log('healthLog', '正在测试API状态...');
+            try {
+                const response = await fetch(`${API_BASE_URL}/status`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('healthLog', `API状态: ${data.status}`, 'success');
+                    log('healthLog', `可用端点: ${data.endpoints.length}个`);
+                } else {
+                    log('healthLog', `API状态检查失败: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('healthLog', `API状态检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRegister() {
+            const teamName = document.getElementById('regTeam').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+
+            log('registerLog', `开始注册测试: 团队=${teamName}, 邮箱=${email}`);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ teamName, email, password })
+                });
+
+                log('registerLog', `响应状态: ${response.status} ${response.statusText}`);
+
+                const data = await response.json();
+                log('registerLog', `响应数据: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok && data.success) {
+                    log('registerLog', '注册成功！', 'success');
+                } else {
+                    log('registerLog', `注册失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log('registerLog', `注册请求失败: ${error.message}`, 'error');
+                log('registerLog', `错误详情: ${error.stack}`);
+            }
+        }
+
+        async function testLogin() {
+            const teamName = document.getElementById('loginTeam').value;
+            const password = document.getElementById('loginPassword').value;
+
+            log('loginLog', `开始登录测试: 团队=${teamName}`);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ teamName, password })
+                });
+
+                log('loginLog', `响应状态: ${response.status} ${response.statusText}`);
+
+                const data = await response.json();
+                log('loginLog', `响应数据: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok && data.success) {
+                    log('loginLog', '登录成功！', 'success');
+                    log('loginLog', `收到令牌长度: ${data.token.length}`);
+                } else {
+                    log('loginLog', `登录失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log('loginLog', `登录请求失败: ${error.message}`, 'error');
+                log('loginLog', `错误详情: ${error.stack}`);
+            }
+        }
+
+        async function viewUsers() {
+            log('usersLog', '正在获取用户列表...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/debug-users`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('usersLog', `总用户数: ${data.totalUsers}`, 'success');
+                    data.users.forEach((user, index) => {
+                        log('usersLog', `${index + 1}. ${user.teamName} (${user.email})`);
+                    });
+                } else {
+                    log('usersLog', `获取用户列表失败: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('usersLog', `请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动测试健康检查
+        window.onload = function() {
+            log('healthLog', '页面加载完成，开始自动健康检查...');
+            testHealth();
+        };
+    </script>
+</body>
+</html>

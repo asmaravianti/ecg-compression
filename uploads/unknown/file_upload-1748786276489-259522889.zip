@@ -1,0 +1,15 @@
+# Test Solution Package
+
+This is a test solution for the ECG Compression Challenge.
+
+## Contents:
+- algorithm.py: Main compression algorithm
+- requirements.txt: Dependencies
+- README.md: This file
+
+## Usage:
+python algorithm.py input.ecg output.compressed
+
+## Note:
+This is a placeholder solution for testing the submission system.
+Replace with your actual algorithm implementation.

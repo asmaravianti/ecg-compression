@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Registration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; }
+        button:hover { background: #0056b3; }
+        .result { padding: 15px; margin: 15px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Registration Debug Test</h1>
+
+        <div id="serverStatus" class="result info">
+            <strong>Server Status:</strong> <span id="statusText">检查中...</span>
+        </div>
+
+        <div class="form-group">
+            <label>Team Name:</label>
+            <input type="text" id="teamName" value="DebugTeam2025">
+        </div>
+
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="email" value="debug@test.com">
+        </div>
+
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" value="123456">
+        </div>
+
+        <button onclick="testRegistration()">Test Registration</button>
+        <button onclick="checkUsers()">Check Users</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // Check server status
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/debug-users`);
+                const data = await response.json();
+                document.getElementById('statusText').textContent = `✅ Server Online (${data.totalUsers} users)`;
+                document.getElementById('serverStatus').className = 'result success';
+            } catch (error) {
+                document.getElementById('statusText').textContent = `❌ Server Offline: ${error.message}`;
+                document.getElementById('serverStatus').className = 'result error';
+            }
+        }
+
+        async function testRegistration() {
+            const teamName = document.getElementById('teamName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result info">Registering...</div>';
+
+            try {
+                console.log('Sending registration request:', { teamName, email, hasPassword: !!password });
+
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        teamName: teamName,
+                        email: email,
+                        password: password
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Registration Successful!</strong><br>
+                            Message: ${data.message}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Registration Failed!</strong><br>
+                            Error: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Network Error!</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+
+            // Refresh server status
+            checkServerStatus();
+        }
+
+        async function checkUsers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/debug-users`);
+                const data = await response.json();
+
+                document.getElementById('result').innerHTML = `
+                    <div class="result info">
+                        <strong>👥 Current Users (${data.totalUsers}):</strong><br>
+                        <pre>${JSON.stringify(data.users, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Failed to fetch users:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('result').innerHTML = `
+                <div class="result success">
+                    <strong>✅ Local storage cleared!</strong>
+                </div>
+            `;
+        }
+
+        // Check server status on load
+        checkServerStatus();
+    </script>
+</body>
+</html>

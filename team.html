@@ -6,11 +6,20 @@
     <title>Team - ECG Compression Benchmark</title>
     <link rel="stylesheet" href="styles.css">
     <script>
-        // 登录校验
-        if (!localStorage.getItem('authToken')) {
+        // 检查认证状态
+        const token = localStorage.getItem('jwt_token') || localStorage.getItem('authToken');
+        const teamName = localStorage.getItem('currentTeam');
+
+        if (!token) {
             alert("Please login first.");
             window.location.href = "index.html";
         }
+
+        console.log('Team page auth check:', {
+            hasToken: !!token,
+            hasTeam: !!teamName,
+            team: teamName
+        });
     </script>
 </head>
 <body>
@@ -128,7 +137,13 @@
     <script>
         // logout 按钮逻辑
         document.getElementById("authButton").addEventListener("click", () => {
-            localStorage.removeItem("authToken");
+            // 清理所有相关的登录数据
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem("currentTeam");
+            localStorage.removeItem("submissions");
+            localStorage.removeItem("highScore");
+
             alert("You have been logged out.");
             window.location.href = "index.html";
         });
@@ -143,7 +158,7 @@
             try {
                 const response = await fetch('/api/debug-info', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 const data = await response.json();
@@ -160,7 +175,7 @@
             try {
                 const response = await fetch('/api/debug-uploads', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 const data = await response.json();

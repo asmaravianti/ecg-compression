@@ -101,7 +101,7 @@
         <h3>2. Percentage Root Mean Square Difference (PRD)</h3>
         <p>
             <strong>Definition:</strong> The error percentage between the reconstructed signal and
-            the original signal, normalized by the signal’s variability.
+            the original signal, normalized by the signal's variability.
         </p>
         <p>
             <strong>Formula:</strong><br>
@@ -347,13 +347,14 @@
 <div id="authModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
+        <button id="clearCacheBtn" style="position: absolute; top: 10px; right: 40px; background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear Cache</button>
         <div id="authForms">
             <!-- 登录表单 -->
             <form id="loginForm" class="auth-form">
                 <h2>Login</h2>
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" required>
+                    <label>Team Name</label>
+                    <input type="text" id="loginTeam" required>
                 </div>
                 <div class="form-group">
                     <label>Password</label>

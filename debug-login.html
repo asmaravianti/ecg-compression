@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            width: 200px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 ECG Login Debug Tool</h1>
+
+    <div class="debug-section">
+        <h2>📡 Server Status Check</h2>
+        <button onclick="checkServer()">Check Server</button>
+        <div id="serverStatus"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>👥 Current Users in Database</h2>
+        <button onclick="showUsers()">Show Users</button>
+        <div id="usersStatus"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>📝 Quick Register Test</h2>
+        <input type="text" id="regTeam" placeholder="Team Name" value="TestTeam">
+        <input type="email" id="regEmail" placeholder="Email" value="test@example.com">
+        <input type="password" id="regPassword" placeholder="Password" value="test123">
+        <button onclick="testRegister()">Register</button>
+        <div id="registerStatus"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>🔐 Quick Login Test</h2>
+        <input type="text" id="loginTeam" placeholder="Team Name" value="TestTeam">
+        <input type="password" id="loginPassword" placeholder="Password" value="test123">
+        <button onclick="testLogin()">Login</button>
+        <div id="loginStatus"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>🔍 Raw API Response</h2>
+        <div id="rawResponse" class="code-block">API responses will appear here...</div>
+    </div>
+
+    <script>
+        const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showRawResponse(data) {
+            document.getElementById('rawResponse').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function checkServer() {
+            try {
+                showStatus('serverStatus', '⏳ Checking server...', 'warning');
+
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('serverStatus', `✅ Server is running: ${data.message}`, 'success');
+                } else {
+                    showStatus('serverStatus', `⚠️ Server responded with error: ${response.status}`, 'warning');
+                }
+                showRawResponse({ endpoint: '/health', status: response.status, data });
+            } catch (error) {
+                showStatus('serverStatus', `❌ Server not accessible: ${error.message}`, 'error');
+                showRawResponse({ error: error.message, endpoint: '/health' });
+            }
+        }
+
+        async function showUsers() {
+            try {
+                showStatus('usersStatus', '⏳ Fetching users...', 'warning');
+
+                const response = await fetch(`${API_BASE_URL}/debug-users`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const userList = data.users.map(u => `• ${u.teamName} (${u.email})`).join('<br>');
+                    showStatus('usersStatus', `✅ Found ${data.totalUsers} users:<br>${userList}`, 'success');
+                } else {
+                    showStatus('usersStatus', `⚠️ Failed to fetch users: ${response.status}`, 'warning');
+                }
+                showRawResponse({ endpoint: '/debug-users', status: response.status, data });
+            } catch (error) {
+                showStatus('usersStatus', `❌ Error: ${error.message}`, 'error');
+                showRawResponse({ error: error.message, endpoint: '/debug-users' });
+            }
+        }
+
+        async function testRegister() {
+            const teamName = document.getElementById('regTeam').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+
+            if (!teamName || !email || !password) {
+                showStatus('registerStatus', '❌ Please fill all fields', 'error');
+                return;
+            }
+
+            try {
+                showStatus('registerStatus', '⏳ Registering...', 'warning');
+
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ teamName, email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showStatus('registerStatus', `✅ Registration successful for ${teamName}!`, 'success');
+                    // Auto-fill login form
+                    document.getElementById('loginTeam').value = teamName;
+                    document.getElementById('loginPassword').value = password;
+                } else {
+                    showStatus('registerStatus', `⚠️ Registration failed: ${data.message}`, 'warning');
+                }
+                showRawResponse({ endpoint: '/register', status: response.status, data, requestBody: { teamName, email, password: '***' } });
+            } catch (error) {
+                showStatus('registerStatus', `❌ Error: ${error.message}`, 'error');
+                showRawResponse({ error: error.message, endpoint: '/register' });
+            }
+        }
+
+        async function testLogin() {
+            const teamName = document.getElementById('loginTeam').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!teamName || !password) {
+                showStatus('loginStatus', '❌ Please fill all fields', 'error');
+                return;
+            }
+
+            try {
+                showStatus('loginStatus', '⏳ Logging in...', 'warning');
+
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ teamName, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showStatus('loginStatus', `✅ Login successful! Token: ${data.token.substring(0, 30)}...`, 'success');
+                    localStorage.setItem('authToken', data.token);
+                } else {
+                    showStatus('loginStatus', `❌ Login failed: ${data.message}`, 'error');
+                }
+                showRawResponse({ endpoint: '/login', status: response.status, data, requestBody: { teamName, password: '***' } });
+            } catch (error) {
+                showStatus('loginStatus', `❌ Error: ${error.message}`, 'error');
+                showRawResponse({ error: error.message, endpoint: '/login' });
+            }
+        }
+
+        // Auto-check server on load
+        window.onload = function() {
+            console.log('Debug tool loaded');
+            checkServer();
+        };
+    </script>
+</body>
+</html>
