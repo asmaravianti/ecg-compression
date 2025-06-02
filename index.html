@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECG Compression Benchmark</title>
     <link rel="stylesheet" href="styles.css">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <a href="#" class="brand">ECG Benchmark</a>
+        <a href="#" class="brand">🔬 ECG Benchmark</a>
         <div class="nav-links">
             <a href="#home">Home</a>
             <a href="#data">Data</a>
@@ -21,322 +21,422 @@
             <a href="#forum">Forum</a>
             <a href="#terms">Terms</a>
             <a href="#login" class="btn btn-primary" id="authButton">Login</a>
-
-
         </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero" id="home">
-        <h1>ECG Compression Challenge</h1>
-        <p>Optimize signal compression algorithms for cardiac data analysis</p>
+        <h1>🫀 ECG Compression Challenge</h1>
+        <p>Optimize signal compression algorithms for cardiac data analysis with cutting-edge technology</p>
         <div class="cta-buttons">
-            <a href="#submit" class="btn btn-primary">Get Started</a>
-            <a href="#evaluation" class="btn btn-secondary">Learn More</a>
+            <a href="#submit" class="btn btn-primary">🚀 Get Started</a>
+            <a href="#evaluation" class="btn btn-secondary">📚 Learn More</a>
         </div>
     </section>
 
     <!-- Metrics Preview -->
     <section class="content-section">
-        <h2>Performance Metrics</h2>
+        <h2>🏆 Performance Metrics</h2>
         <div class="metrics-grid">
-            <div class="metric-card">
+            <div class="metric-card interactive-hover">
                 <h3>Top Compression Ratio</h3>
                 <div class="metric-value">48.2:1</div>
                 <p class="metric-team">Team SignalPro</p>
             </div>
-            <div class="metric-card">
+            <div class="metric-card interactive-hover">
                 <h3>Best PRD</h3>
                 <div class="metric-value">2.1%</div>
                 <p class="metric-team">Team CardioTech</p>
             </div>
+            <div class="metric-card interactive-hover">
+                <h3>Active Teams</h3>
+                <div class="metric-value">127</div>
+                <p class="metric-team">Global Participants</p>
+            </div>
         </div>
     </section>
-
-   <hr>
 
     <!-- Data Section -->
     <section class="content-section" id="data">
-        <h2>Dataset Information</h2>
-        <div class="file-card">
-            <h3>PhysioNet MIT-BIH Database</h3>
-            <p>Format: MATLAB .mat files</p>
-            <p>Sampling Frequency: 360 Hz</p>
+        <h2>📊 Dataset Information</h2>
+        <div class="file-card interactive-hover">
+            <h3>📈 PhysioNet MIT-BIH Database</h3>
+            <p><strong>Format:</strong> MATLAB .mat files</p>
+            <p><strong>Sampling Frequency:</strong> 360 Hz</p>
+            <p><strong>Duration:</strong> 5-minute recordings</p>
+            <p><strong>Signal Quality:</strong> High-resolution cardiac signals</p>
             <div class="download-buttons">
-                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-primary" download>Download Sample</a>
-                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-secondary" download>Donwload Dataset (1.2GB)</a>
-
+                <a href="files/PhysioNet_MITBIH_rec117_5min.mat" class="btn btn-primary" download>📥 Download Sample</a>
             </div>
         </div>
     </section>
-    <hr>
+
     <!-- Evaluation Section -->
-<section class="content-section" id="evaluation">
-    <h2>Evaluation</h2>
+    <section class="content-section" id="evaluation">
+        <h2>🔬 Evaluation Methodology</h2>
 
-    <p>
-        The performance of each submission is evaluated based on the following metrics.
-        Higher compression ratio (CR) is better for storage/transmission efficiency,
-        while lower percentage root mean square difference (PRD) indicates more accurate
-        signal reconstruction. Finally, an overall score balances both factors.
-    </p>
+        <p style="text-align: center; font-size: 1.1rem; margin-bottom: 3rem; color: var(--text-muted);">
+            The performance of each submission is evaluated based on the following metrics.
+            Higher compression ratio (CR) is better for storage/transmission efficiency,
+            while lower percentage root mean square difference (PRD) indicates more accurate
+            signal reconstruction. Finally, an overall score balances both factors.
+        </p>
 
-    <!-- 1. Compression Ratio (CR) -->
-    <div class="metric-block">
-        <h3>1. Compression Ratio (CR)</h3>
-        <p>
-            <strong>Definition:</strong> The ratio of the original signal length to the compressed signal length.
-        </p>
-        <p>
-            <strong>Formula:</strong><br>
-            <div class="formula-block"><code>CR = (Original Signal Length) / (Compressed Signal Length)</code></div>
-        </p>
-        <p>
-            <strong>Goal:</strong> Higher CR values indicate better compression efficiency.
-        </p>
-    </div>
-
-    <!-- 2. Percentage Root Mean Square Difference (PRD) -->
-    <div class="metric-block">
-        <h3>2. Percentage Root Mean Square Difference (PRD)</h3>
-        <p>
-            <strong>Definition:</strong> The error percentage between the reconstructed signal and
-            the original signal, normalized by the signal's variability.
-        </p>
-        <p>
-            <strong>Formula:</strong><br>
-            <div class="formula-block">
-                <code>
-                    PRD =
-                    [ sqrt( Σ ( fᵢ - f̂ᵢ )² ) / sqrt( Σ ( fᵢ - f̄ )² ) ] × 100
-                </code>
+        <!-- 1. Compression Ratio (CR) -->
+        <div class="metric-block">
+            <h3>📐 1. Compression Ratio (CR)</h3>
+            <p>
+                <strong>Definition:</strong> The ratio of the original signal length to the compressed signal length.
+                This metric measures how efficiently your algorithm compresses the ECG data.
+            </p>
+            
+            <div class="formula-image">
+                <img src="images/cr_formula.png" alt="Compression Ratio Formula" />
+                <p style="margin-top: 1rem; font-style: italic; color: var(--text-muted);">
+                    Compression Ratio Formula - Higher values indicate better compression efficiency
+                </p>
             </div>
-        </p>
-        <ul>
-            <li><code>fᵢ</code>: Original signal value at point <em>i</em>.</li>
-            <li><code>f̂ᵢ</code>: Reconstructed signal value at point <em>i</em>.</li>
-            <li><code>f̄</code>: Mean value of the original signal.</li>
-            <li><code>N</code>: Total number of data points.</li>
-        </ul>
-        <p>
-            <strong>Goal:</strong> Lower PRD values indicate better reconstruction quality.
-        </p>
-    </div>
-
-    <!-- 3. Overall Score -->
-    <div class="metric-block">
-        <h3>3. Overall Score</h3>
-        <p>
-            <strong>Definition:</strong> A combined score that balances compression efficiency and
-            reconstruction accuracy.
-        </p>
-        <p>
-            <strong>Formula:</strong><br>
-            <div class="formula-block"><code>Score = CR / (PRD + ε)</code></div>
-            <br>
-            where <em>ε</em> is a small constant (e.g., 1×10<sup>-6</sup>) to avoid division by zero.
-        </p>
-        <p>
-            <strong>Goal:</strong> Higher scores indicate better overall performance.
-        </p>
-    </div>
-
-    <!-- 4. Evaluation Process -->
-    <div class="process-block">
-        <h3>4. Evaluation Process</h3>
-
-        <!-- Step 1: Input Data -->
-        <div class="process-step">
-            <h4>Step 1: Input Data</h4>
+            
             <p>
-                Participants are provided with ECG signals in <code>.mat</code> format (e.g.,
-                <em>PhysioNet_MITBIH_rec117_5min.mat</em>). Each file contains a single ECG recording.
+                <strong>🎯 Goal:</strong> Higher CR values indicate better compression efficiency. 
+                Top performers achieve ratios above 40:1 while maintaining signal quality.
             </p>
         </div>
 
-        <!-- Step 2: Output Requirements -->
-        <div class="process-step">
-            <h4>Step 2: Output Requirements</h4>
+        <!-- 2. Percentage Root Mean Square Difference (PRD) -->
+        <div class="metric-block">
+            <h3>📊 2. Percentage Root Mean Square Difference (PRD)</h3>
             <p>
-                Participants must submit a compressed signal and a reconstructed signal.
-                The output files must be in <code>.mat</code> format and include:
+                <strong>Definition:</strong> The error percentage between the reconstructed signal and
+                the original signal, normalized by the signal's variability. This measures reconstruction accuracy.
             </p>
-            <ul>
-                <li><code>f_recon</code>: The reconstructed ECG signal.</li>
-                <li><code>CR_val</code>: The compression ratio.</li>
-            </ul>
+            
+            <div class="formula-image">
+                <img src="images/prd_formula.png" alt="PRD Formula" />
+                <p style="margin-top: 1rem; font-style: italic; color: var(--text-muted);">
+                    Percentage Root Mean Square Difference Formula - Lower values indicate better signal quality
+                </p>
+            </div>
+            
+            <div style="margin: 2rem 0; padding: 1.5rem; background: var(--background); border-radius: 12px; border-left: 4px solid var(--accent);">
+                <h4 style="color: var(--primary); margin-bottom: 1rem;">🔍 Formula Components:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--surface); border-radius: 8px;">
+                        <code style="color: var(--accent); font-weight: 600;">fᵢ</code>: Original signal value at point <em>i</em>
+                    </li>
+                    <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--surface); border-radius: 8px;">
+                        <code style="color: var(--accent); font-weight: 600;">f̂ᵢ</code>: Reconstructed signal value at point <em>i</em>
+                    </li>
+                    <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--surface); border-radius: 8px;">
+                        <code style="color: var(--accent); font-weight: 600;">f̄</code>: Mean value of the original signal
+                    </li>
+                    <li style="margin: 0.5rem 0; padding: 0.5rem; background: var(--surface); border-radius: 8px;">
+                        <code style="color: var(--accent); font-weight: 600;">N</code>: Total number of data points
+                    </li>
+                </ul>
+            </div>
+            
+            <p>
+                <strong>🎯 Goal:</strong> Lower PRD values indicate better reconstruction quality. 
+                Elite algorithms achieve PRD values below 3% while maintaining high compression ratios.
+            </p>
         </div>
 
-        <!-- Step 3: Scoring -->
-        <div class="process-step">
-            <h4>Step 3: Scoring</h4>
+        <!-- 3. Overall Score -->
+        <div class="metric-block">
+            <h3>🏅 3. Overall Score</h3>
             <p>
-                The scoring program computes the CR and PRD for each submission.
-                The Overall Score is calculated as:
+                <strong>Definition:</strong> A combined score that balances compression efficiency and
+                reconstruction accuracy. This is the primary ranking metric for the leaderboard.
             </p>
             <div class="formula-block">
                 <code>Score = CR / (PRD + ε)</code>
+                <br><br>
+                <span style="color: #94a3b8;">where ε is a small constant (1×10⁻⁶) to avoid division by zero</span>
             </div>
             <p>
-                The final score is the average score across all datasets.
+                <strong>🎯 Goal:</strong> Higher scores indicate better overall performance. 
+                The optimal algorithm maximizes compression while minimizing reconstruction error.
             </p>
         </div>
 
+        <!-- 4. Evaluation Process -->
+        <div class="process-block">
+            <h3>⚙️ 4. Evaluation Process</h3>
 
-        <!-- Step 4: Leaderboard -->
-        <div class="process-step">
-            <h4>Step 4: Leaderboard</h4>
-            <p>
-                Submissions are ranked based on the Overall Score.
-                Detailed results (including CR and PRD) are displayed for each dataset.
-            </p>
-        </div>
-    </div>
-</section>
-<hr>
-
-<!-- Team Section -->
-<section class="content-section" id="team">
-    <h2>Team Management</h2>
-
-    <!-- Team Registration -->
-    <div class="team-registration">
-        <h3>Set Team Name</h3>
-        <form id="teamForm" class="submission-form">
-            <div class="form-group">
-                <label for="teamName">Team Name</label>
-                <input type="text" id="teamName" required>
+            <!-- Step 1: Input Data -->
+            <div class="process-step">
+                <h4>📥 Step 1: Input Data</h4>
+                <p>
+                    Participants are provided with ECG signals in <code>.mat</code> format (e.g.,
+                    <em>PhysioNet_MITBIH_rec117_5min.mat</em>). Each file contains a single ECG recording
+                    sampled at 360 Hz with 5-minute duration.
+                </p>
             </div>
-            <button type="submit" class="btn btn-primary">Save Team</button>
-        </form>
-    </div>
 
-    <!-- Team Submissions -->
-    <div class="team-submissions">
-        <h3>Team Submissions</h3>
-        <form id="teamSubmissionForm" class="submission-form">
-            <div class="form-group">
-                <label for="teamAlgorithm">Algorithm Name</label>
-                <input type="text" id="teamAlgorithm" required>
+            <!-- Step 2: Output Requirements -->
+            <div class="process-step">
+                <h4>📤 Step 2: Output Requirements</h4>
+                <p>
+                    Participants must submit a compressed signal and a reconstructed signal.
+                    The output files must be in <code>.mat</code> format and include:
+                </p>
+                <div style="margin: 1rem 0; padding: 1rem; background: var(--surface); border-radius: 8px;">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin: 0.5rem 0; padding: 0.5rem; border-left: 3px solid var(--primary);">
+                            <code style="color: var(--primary); font-weight: 600;">f_recon</code>: The reconstructed ECG signal
+                        </li>
+                        <li style="margin: 0.5rem 0; padding: 0.5rem; border-left: 3px solid var(--accent);">
+                            <code style="color: var(--accent); font-weight: 600;">CR_val</code>: The compression ratio
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="teamCompressedFile">Compressed File (.zip)</label>
-                <input type="file" id="teamCompressedFile" accept=".zip" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Submit Team Entry</button>
-        </form>
-    </div>
 
-    <!-- Team Progress -->
-    <div class="team-progress">
-        <h3>Current Team: <span id="currentTeam">Not Set</span></h3>
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <h3>Highest Score</h3>
-                <div class="metric-value" id="highScore">0</div>
-                <p class="metric-team">Current Team</p>
+            <!-- Step 3: Scoring -->
+            <div class="process-step">
+                <h4>🧮 Step 3: Scoring</h4>
+                <p>
+                    The scoring program computes the CR and PRD for each submission.
+                    The Overall Score is calculated as:
+                </p>
+                <div class="formula-block">
+                    <code>Score = CR / (PRD + ε)</code>
+                </div>
+                <p>
+                    The final score is the average score across all datasets in the test suite.
+                </p>
             </div>
-            <div class="metric-card">
-                <h3>Total Submissions</h3>
-                <div class="metric-value" id="totalSubmissions">0</div>
-                <p class="metric-team">Current Team</p>
+
+            <!-- Step 4: Leaderboard -->
+            <div class="process-step">
+                <h4>🏆 Step 4: Leaderboard</h4>
+                <p>
+                    Submissions are ranked based on the Overall Score.
+                    Detailed results (including CR and PRD) are displayed for each dataset,
+                    providing comprehensive performance insights.
+                </p>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+
+    <!-- Team Section -->
+    <section class="content-section" id="team" style="display: none;">
+        <h2>👥 Team Management</h2>
+
+        <!-- Team Registration -->
+        <div class="team-registration">
+            <h3>✏️ Set Team Name</h3>
+            <form id="teamForm" class="submission-form">
+                <div class="form-group">
+                    <label for="teamName">Team Name</label>
+                    <input type="text" id="teamName" required placeholder="Enter your team name">
+                </div>
+                <button type="submit" class="btn btn-primary">💾 Save Team</button>
+            </form>
+        </div>
+
+        <!-- Team Submissions -->
+        <div class="team-submissions">
+            <h3>📤 Team Submissions</h3>
+            <form id="teamSubmissionForm" class="submission-form">
+                <div class="form-group">
+                    <label for="teamAlgorithm">Algorithm Name</label>
+                    <input type="text" id="teamAlgorithm" required placeholder="e.g., WaveletCompress_v2">
+                </div>
+                <div class="form-group">
+                    <label for="teamCompressedFile">Compressed File (.zip)</label>
+                    <input type="file" id="teamCompressedFile" accept=".zip" required>
+                </div>
+                <button type="submit" class="btn btn-primary">🚀 Submit Team Entry</button>
+            </form>
+        </div>
+
+        <!-- Team Progress -->
+        <div class="team-progress">
+            <h3>📈 Current Team: <span id="currentTeam">Not Set</span></h3>
+            <div class="metrics-grid">
+                <div class="metric-card interactive-hover">
+                    <h3>Highest Score</h3>
+                    <div class="metric-value" id="highScore">0</div>
+                    <p class="metric-team">Current Team</p>
+                </div>
+                <div class="metric-card interactive-hover">
+                    <h3>Total Submissions</h3>
+                    <div class="metric-value" id="totalSubmissions">0</div>
+                    <p class="metric-team">Current Team</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Leaderboard -->
     <section class="content-section" id="leaderboard">
-        <h2>Current Rankings</h2>
-        <table class="leaderboard-table">
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Team</th>
-                    <th>CR</th>
-                    <th>PRD</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>SignalPros</td>
-                    <td>48.2</td>
-                    <td>0.0021</td>
-                    <td>94.5</td>
-                </tr>
-                <!-- More rows -->
-            </tbody>
-        </table>
+        <h2>🏆 Current Rankings</h2>
+        <div style="overflow-x: auto;">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>🥇 Rank</th>
+                        <th>👥 Team</th>
+                        <th>📐 CR</th>
+                        <th>📊 PRD</th>
+                        <th>🏅 Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>SignalPros</td>
+                        <td>48.2</td>
+                        <td>0.0021</td>
+                        <td>94.5</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>CardioTech</td>
+                        <td>45.8</td>
+                        <td>0.0024</td>
+                        <td>89.2</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>WaveformAI</td>
+                        <td>42.1</td>
+                        <td>0.0028</td>
+                        <td>85.7</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <!-- Submission Form -->
-    <section class="content-section" id="submit">
-        <h2>Submit Your Algorithm</h2>
+    <section class="content-section" id="submit" style="display: none;">
+        <h2>🚀 Submit Your Algorithm</h2>
         <form id="submissionForm" class="submission-form">
             <div class="form-group">
                 <label for="algorithmName">Algorithm Name</label>
-                <input type="text" id="algorithmName" required>
+                <input type="text" id="algorithmName" required placeholder="e.g., DeepCompress_v1.2">
             </div>
 
             <div class="form-group">
                 <label for="compressedFile">Compressed File (.zip)</label>
                 <input type="file" id="compressedFile" accept=".zip" required>
+                <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                    Upload your algorithm implementation as a ZIP file
+                </small>
             </div>
 
-            <button type="submit" class="btn btn-primary">Submit Entry</button>
+            <!-- Paper Submission Section -->
+            <div class="form-group">
+                <label style="font-size: 1.1rem; color: var(--primary); margin-bottom: 1rem;">📄 Research Paper (Required)</label>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                    You must provide either a paper document or a DOI link to your published research.
+                </p>
+                
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="paperType" value="upload" id="paperUpload" required>
+                        <span>📎 Upload Paper Document</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="paperType" value="doi" id="paperDOI" required>
+                        <span>🔗 Provide DOI Link</span>
+                    </label>
+                </div>
+
+                <div id="paperUploadSection" style="display: none;">
+                    <label for="paperFile">Paper Document</label>
+                    <input type="file" id="paperFile" accept=".pdf,.doc,.docx">
+                    <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        Upload your research paper (PDF, DOC, or DOCX format)
+                    </small>
+                </div>
+
+                <div id="paperDOISection" style="display: none;">
+                    <label for="paperDOIInput">DOI Link</label>
+                    <input type="url" id="paperDOIInput" placeholder="https://doi.org/10.1000/example or DOI: 10.1000/example">
+                    <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        Provide the DOI link to your published research paper
+                    </small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="paperTitle">Paper Title</label>
+                <input type="text" id="paperTitle" required placeholder="e.g., Novel ECG Compression Using Deep Learning">
+                <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                    Enter the title of your research paper
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="paperAuthors">Authors</label>
+                <input type="text" id="paperAuthors" required placeholder="e.g., John Doe, Jane Smith, et al.">
+                <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                    List all authors of the research paper
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">📤 Submit Entry</button>
         </form>
     </section>
 
     <!-- My Submissions -->
-    <section class="content-section" id="submissions">
-        <h2>My Submissions</h2>
+    <section class="content-section" id="submissions" style="display: none;">
+        <h2>📋 My Submissions</h2>
         <div class="submission-history" id="submissionHistory">
-            <div class="submission-card">
-                <h3>Submission #1</h3>
-                <p>Status: Processing</p>
-                <p>Date: 2024-03-01</p>
-                <p>CR: 45.2 | PRD: 0.0025</p>
+            <div class="submission-card interactive-hover">
+                <h3>🔬 Submission #1</h3>
+                <p><strong>Status:</strong> <span class="status-Processing">⏳ Processing</span></p>
+                <p><strong>Date:</strong> 2024-03-01</p>
+                <p><strong>Algorithm:</strong> WaveletCompress_v2</p>
+                <p><strong>Metrics:</strong> CR: 45.2 | PRD: 0.0025</p>
             </div>
-            <div class="submission-card">
-                <h3>Submission #2</h3>
-                <p>Status: Completed</p>
-                <p>Date: 2024-02-28</p>
-                <p>CR: 42.8 | PRD: 0.0028</p>
+            <div class="submission-card interactive-hover">
+                <h3>✅ Submission #2</h3>
+                <p><strong>Status:</strong> <span class="status-scored-locally">✅ Completed</span></p>
+                <p><strong>Date:</strong> 2024-02-28</p>
+                <p><strong>Algorithm:</strong> FFTCompress_v1</p>
+                <p><strong>Metrics:</strong> CR: 42.8 | PRD: 0.0028</p>
             </div>
         </div>
     </section>
-<hr>
+
     <!-- Forum Section -->
     <section class="content-section" id="forum">
-        <h2>Discussion Forum</h2>
+        <h2>💬 Discussion Forum</h2>
         <div class="forum-container" id="forumContainer">
-            <div class="forum-post">
-                <h3>Dataset Format Clarification</h3>
-                <p>Posted by: User123 | 2 hours ago</p>
-                <p>Can someone clarify the expected format for the reconstructed signals?</p>
-                <button class="btn btn-primary">Reply</button>
+            <div class="forum-post interactive-hover">
+                <h3>❓ Dataset Format Clarification</h3>
+                <p><strong>Posted by:</strong> User123 | 🕐 2 hours ago</p>
+                <p>Can someone clarify the expected format for the reconstructed signals? Should they match the original sampling rate exactly?</p>
+                <button class="btn btn-primary">💬 Reply</button>
             </div>
-            <div class="forum-post">
-                <h3>Evaluation Metrics</h3>
-                <p>Posted by: Admin | 1 day ago</p>
-                <p>Please ensure your submissions meet the evaluation criteria.</p>
-                <button class="btn btn-primary">Reply</button>
+            <div class="forum-post interactive-hover">
+                <h3>📏 Evaluation Metrics Discussion</h3>
+                <p><strong>Posted by:</strong> Admin | 🗓️ 1 day ago</p>
+                <p>Please ensure your submissions meet the evaluation criteria. New guidelines have been posted in the documentation.</p>
+                <button class="btn btn-primary">💬 Reply</button>
             </div>
         </div>
     </section>
-<hr>
+
     <!-- Terms Section -->
     <section class="content-section" id="terms">
-        <h2>Terms and Conditions</h2>
+        <h2>📋 Terms and Conditions</h2>
         <div class="terms-section">
-            <p>By participating in this benchmark, you agree to the following terms:</p>
+            <p style="text-align: center; margin-bottom: 2rem; font-size: 1.1rem;">
+                By participating in this benchmark, you agree to the following terms:
+            </p>
             <ul>
-                <li>Submissions must be original work</li>
-                <li>The organizers reserve the right to disqualify any submission that violates the rules</li>
-                <li>Participants must maintain the integrity of the competition</li>
-                <li>All submissions will be evaluated based on the specified metrics</li>
+                <li>🔬 Submissions must be original work and properly documented</li>
+                <li>⚖️ The organizers reserve the right to disqualify any submission that violates the rules</li>
+                <li>🤝 Participants must maintain the integrity and fairness of the competition</li>
+                <li>📊 All submissions will be evaluated based on the specified metrics</li>
+                <li>🏆 Results and rankings are final and cannot be contested</li>
+                <li>📚 Participants agree to allow their algorithms to be used for research purposes</li>
             </ul>
         </div>
     </section>
@@ -347,40 +447,53 @@
 <div id="authModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <button id="clearCacheBtn" style="position: absolute; top: 10px; right: 40px; background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear Cache</button>
+        <button id="clearCacheBtn" style="position: absolute; top: 10px; right: 40px; background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Clear Cache</button>
         <div id="authForms">
-            <!-- 登录表单 -->
+            <!-- Login Form -->
             <form id="loginForm" class="auth-form">
-                <h2>Login</h2>
+                <h2>🔑 Login</h2>
                 <div class="form-group">
-                    <label>Team Name</label>
-                    <input type="text" id="loginTeam" required>
+                    <label>👥 Team Name</label>
+                    <input type="text" id="loginTeam" required placeholder="Enter your team name">
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" required>
+                    <label>🔒 Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password">
                 </div>
-                <button type="submit" class="btn btn-primary">Login</button>
-                <p>Don't have an account? <a href="#register" class="switch-form">Register</a></p>
+                <button type="submit" class="btn btn-primary">🚀 Login</button>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    Don't have an account? <a href="#register" class="switch-form">Register here</a>
+                </p>
             </form>
 
-            <!-- 注册表单 -->
+            <!-- Registration Form -->
             <form id="registerForm" class="auth-form" style="display:none;">
-                <h2>Register Team</h2>
+                <h2>📝 Register Team</h2>
                 <div class="form-group">
-                    <label>Team Name</label>
-                    <input type="text" id="registerTeam" required>
+                    <label>👥 Team Name</label>
+                    <input type="text" id="registerTeam" required placeholder="Choose a unique team name" minlength="3" maxlength="50">
+                    <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        Team name must be 3-50 characters long
+                    </small>
                 </div>
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="registerEmail" required>
+                    <label>📧 Email</label>
+                    <input type="email" id="registerEmail" required placeholder="team@example.com" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
+                    <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        Please enter a valid email address
+                    </small>
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="registerPassword" required>
+                    <label>🔒 Password</label>
+                    <input type="password" id="registerPassword" required placeholder="Create a secure password" minlength="8" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$">
+                    <small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        Password must be at least 8 characters with uppercase, lowercase, number, and special character
+                    </small>
                 </div>
-                <button type="submit" class="btn btn-primary">Register</button>
-                <p>Already have an account? <a href="#login" class="switch-form">Login</a></p>
+                <button type="submit" class="btn btn-primary">✨ Register</button>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    Already have an account? <a href="#login" class="switch-form">Login here</a>
+                </p>
             </form>
         </div>
     </div>

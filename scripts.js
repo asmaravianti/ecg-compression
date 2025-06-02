@@ -19,6 +19,152 @@ function removeAuthToken() {
     localStorage.removeItem('authToken');
 }
 
+// Enhanced validation functions
+function validateEmail(email) {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+}
+
+function validateDOI(doi) {
+    // Validate DOI format - can be URL or just DOI string
+    const doiRegex = /^(https?:\/\/)?(dx\.)?doi\.org\/10\.\d{4,}\/\S+$|^10\.\d{4,}\/\S+$/;
+    return doiRegex.test(doi);
+}
+
+function validatePaperSubmission() {
+    const paperType = document.querySelector('input[name="paperType"]:checked');
+    if (!paperType) {
+        return { valid: false, message: 'Please select either paper upload or DOI link' };
+    }
+
+    const paperTitle = document.getElementById('paperTitle').value.trim();
+    const paperAuthors = document.getElementById('paperAuthors').value.trim();
+
+    if (!paperTitle) {
+        return { valid: false, message: 'Paper title is required' };
+    }
+
+    if (!paperAuthors) {
+        return { valid: false, message: 'Paper authors are required' };
+    }
+
+    if (paperType.value === 'upload') {
+        const paperFile = document.getElementById('paperFile').files[0];
+        if (!paperFile) {
+            return { valid: false, message: 'Please upload your paper document' };
+        }
+        
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowedTypes.includes(paperFile.type)) {
+            return { valid: false, message: 'Paper must be in PDF, DOC, or DOCX format' };
+        }
+        
+        // Check file size (max 25MB)
+        if (paperFile.size > 25 * 1024 * 1024) {
+            return { valid: false, message: 'Paper file size must be less than 25MB' };
+        }
+    } else if (paperType.value === 'doi') {
+        const doiInput = document.getElementById('paperDOIInput').value.trim();
+        if (!doiInput) {
+            return { valid: false, message: 'Please provide the DOI link' };
+        }
+        
+        if (!validateDOI(doiInput)) {
+            return { valid: false, message: 'Please enter a valid DOI (e.g., 10.1000/example or https://doi.org/10.1000/example)' };
+        }
+    }
+
+    return { valid: true };
+}
+
+// Paper submission form handlers
+function setupPaperSubmissionHandlers() {
+    const paperUploadRadio = document.getElementById('paperUpload');
+    const paperDOIRadio = document.getElementById('paperDOI');
+    const paperUploadSection = document.getElementById('paperUploadSection');
+    const paperDOISection = document.getElementById('paperDOISection');
+
+    if (paperUploadRadio && paperDOIRadio && paperUploadSection && paperDOISection) {
+        paperUploadRadio.addEventListener('change', function() {
+            if (this.checked) {
+                paperUploadSection.style.display = 'block';
+                paperDOISection.style.display = 'none';
+                document.getElementById('paperFile').required = true;
+                document.getElementById('paperDOIInput').required = false;
+            }
+        });
+
+        paperDOIRadio.addEventListener('change', function() {
+            if (this.checked) {
+                paperDOISection.style.display = 'block';
+                paperUploadSection.style.display = 'none';
+                document.getElementById('paperDOIInput').required = true;
+                document.getElementById('paperFile').required = false;
+            }
+        });
+    }
+}
+
+// Enhanced form validation with real-time feedback
+function setupFormValidation() {
+    // Email validation
+    const emailInput = document.getElementById('registerEmail');
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            const email = this.value;
+            const isValid = validateEmail(email);
+            
+            if (email && !isValid) {
+                this.setCustomValidity('Please enter a valid email address');
+                this.style.borderColor = 'var(--secondary)';
+            } else {
+                this.setCustomValidity('');
+                this.style.borderColor = isValid ? 'var(--accent)' : '';
+            }
+        });
+    }
+
+    // Password validation
+    const passwordInput = document.getElementById('registerPassword');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            const isValid = validatePassword(password);
+            
+            if (password && !isValid) {
+                this.setCustomValidity('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+                this.style.borderColor = 'var(--secondary)';
+            } else {
+                this.setCustomValidity('');
+                this.style.borderColor = isValid ? 'var(--accent)' : '';
+            }
+        });
+    }
+
+    // DOI validation
+    const doiInput = document.getElementById('paperDOIInput');
+    if (doiInput) {
+        doiInput.addEventListener('input', function() {
+            const doi = this.value.trim();
+            const isValid = validateDOI(doi);
+            
+            if (doi && !isValid) {
+                this.setCustomValidity('Please enter a valid DOI');
+                this.style.borderColor = 'var(--secondary)';
+            } else {
+                this.setCustomValidity('');
+                this.style.borderColor = isValid ? 'var(--accent)' : '';
+            }
+        });
+    }
+}
+
 // Utility functions
 function validateFiles(files) {
     const zipValid = files.zip?.name.endsWith('.zip');
@@ -40,9 +186,13 @@ function updateAuthState() {
     const isLoggedIn = !!getAuthToken();
     const authButton = document.getElementById('authButton');
     const currentTeamDisplay = document.getElementById('currentTeam');
+    const teamSection = document.getElementById('team');
+    const submitSection = document.getElementById('submit');
+    const submissionsSection = document.getElementById('submissions');
 
     console.log('🔄 Updating auth state:', { isLoggedIn, hasTeam: !!currentTeam });
 
+    // Update auth button
     if (authButton) {
         if (isLoggedIn) {
             authButton.textContent = 'Logout';
@@ -62,6 +212,25 @@ function updateAuthState() {
             };
         }
     }
+
+    // Show/hide authenticated sections based on login status
+    const authenticatedSections = [
+        { element: teamSection, name: 'team management' },
+        { element: submitSection, name: 'algorithm submission' },
+        { element: submissionsSection, name: 'my submissions' }
+    ];
+
+    authenticatedSections.forEach(({ element, name }) => {
+        if (element) {
+            if (isLoggedIn) {
+                element.style.display = 'block';
+                console.log(`✅ Showing ${name} section for authenticated user`);
+            } else {
+                element.style.display = 'none';
+                console.log(`🔒 Hiding ${name} section for unauthenticated user`);
+            }
+        }
+    });
 
     // 在团队页面检查认证状态
     if (window.location.pathname.includes('team.html') && !isLoggedIn) {
@@ -241,91 +410,79 @@ function showForm(formType) {
 
 // 文件上传和提交功能
 async function submitFiles() {
-    const algorithmNameInput = document.getElementById('teamAlgorithm');
-    const fileInput = document.getElementById('teamCompressedFile');
-
-    if (!algorithmNameInput || !fileInput) {
-        alert('Page elements not found!');
+    console.log('📤 Starting file submission...');
+    
+    const token = getAuthToken();
+    if (!token) {
+        alert('Please login first!');
         return;
     }
 
-    const algorithmName = algorithmNameInput.value.trim();
-    const file = fileInput.files[0];
+    const algorithmName = document.getElementById('algorithmName')?.value;
+    const compressedFile = document.getElementById('compressedFile')?.files[0];
 
-    if (!algorithmName) {
-        alert('Please enter algorithm name!');
+    if (!algorithmName || !compressedFile) {
+        alert('Please fill in all required fields and select files!');
         return;
     }
 
-    if (!file) {
-        alert('Please select a file to upload!');
+    // Validate paper submission
+    const paperValidation = validatePaperSubmission();
+    if (!paperValidation.valid) {
+        alert(paperValidation.message);
         return;
     }
 
-    if (!currentTeam) {
-        alert('Please set team name first!');
-        return;
+    const formData = new FormData();
+    formData.append('algorithmName', algorithmName);
+    formData.append('compressedFile', compressedFile);
+
+    // Add paper information
+    const paperTitle = document.getElementById('paperTitle').value.trim();
+    const paperAuthors = document.getElementById('paperAuthors').value.trim();
+    const paperType = document.querySelector('input[name="paperType"]:checked').value;
+
+    formData.append('paperTitle', paperTitle);
+    formData.append('paperAuthors', paperAuthors);
+    formData.append('paperType', paperType);
+
+    if (paperType === 'upload') {
+        const paperFile = document.getElementById('paperFile').files[0];
+        formData.append('paperFile', paperFile);
+    } else if (paperType === 'doi') {
+        const paperDOI = document.getElementById('paperDOIInput').value.trim();
+        formData.append('paperDOI', paperDOI);
     }
 
     try {
-        console.log('🚀 Starting file submission...', { algorithmName, fileName: file.name, teamName: currentTeam });
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('algorithmName', algorithmName);
-        formData.append('teamName', currentTeam);
-
-        const response = await fetch(`${API_BASE_URL}/submit-to-codabench`, {
+        console.log('🚀 Sending submission...');
+        const response = await fetch(`${API_BASE_URL}/submit`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${getAuthToken()}`
+                'Authorization': `Bearer ${token}`
             },
             body: formData
         });
 
         const data = await response.json();
-        console.log('📊 Submission response:', data);
+        console.log('📤 Submission response:', data);
 
         if (response.ok && data.success) {
-            alert(`✅ Submission successful!\n\nAlgorithm: ${algorithmName}\nTeam: ${currentTeam}\nStatus: ${data.status}\n\nCheck console for detailed scoring information.`);
-
-            // 更新提交列表
-            const newSubmission = {
-                id: data.submissionId,
-                teamName: currentTeam,
-                algorithmName: algorithmName,
-                status: data.status,
-                scores: data.scores || data.datasetScores,
-                timestamp: new Date().toISOString()
-            };
-
-            submissions.unshift(newSubmission);
-            localStorage.setItem('submissions', JSON.stringify(submissions));
-
-            // 更新最高分
-            if (data.scores && data.scores.Score) {
-                const newScore = parseFloat(data.scores.Score);
-                if (newScore > highScore) {
-                    highScore = newScore;
-                    localStorage.setItem('highScore', highScore.toString());
-                }
-            }
-
-            updateTeamDisplay();
+            alert(`Submission successful! Your algorithm "${algorithmName}" has been submitted for evaluation.`);
+            
+            // Reset form
+            document.getElementById('submissionForm').reset();
+            document.getElementById('paperUploadSection').style.display = 'none';
+            document.getElementById('paperDOISection').style.display = 'none';
+            
+            // Update submissions list
             updateSubmissionsDisplay();
-            updateLeaderboard();
-
-            // 清空表单
-            algorithmNameInput.value = '';
-            fileInput.value = '';
-
         } else {
-            throw new Error(data.message || data.error || 'Submission failed');
+            throw new Error(data.message || 'Submission failed');
         }
-
     } catch (error) {
         console.error('❌ Submission error:', error);
-        alert(`❌ Submission failed: ${error.message}`);
+        alert(`Submission failed: ${error.message}`);
     }
 }
 
@@ -373,7 +530,23 @@ function addSubmission(teamName, algorithmName, score) {
 
 async function register(teamName, email, password) {
     try {
-        console.log('📝 Registering user:', { teamName, email });
+        console.log('📝 Registering new team:', teamName);
+
+        // Client-side validation
+        if (!teamName || teamName.length < 3 || teamName.length > 50) {
+            alert('Team name must be between 3 and 50 characters');
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            alert('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+            return;
+        }
 
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
@@ -384,16 +557,11 @@ async function register(teamName, email, password) {
         });
 
         const data = await response.json();
-        console.log('📝 Register response:', data);
+        console.log('📝 Registration response:', data);
 
         if (response.ok && data.success) {
-            alert('Registration successful! Please login.');
+            alert('Registration successful! You can now login.');
             showForm('login');
-            // 清空注册表单
-            document.getElementById('registerTeam').value = '';
-            document.getElementById('registerEmail').value = '';
-            document.getElementById('registerPassword').value = '';
-            // 预填团队名到登录表单
             document.getElementById('loginTeam').value = teamName;
         } else {
             throw new Error(data.message || 'Registration failed');
@@ -435,8 +603,11 @@ async function login(teamName, password) {
                 modal.style.display = 'none';
             }
 
-            alert('Login successful!');
-            window.location.href = 'team.html';
+            // Update auth state to show team management section
+            updateAuthState();
+            updateTeamDisplay();
+
+            alert('Login successful! You can now manage your team.');
         } else {
             throw new Error(data.message || 'Login failed');
         }
@@ -455,11 +626,29 @@ function logout() {
     highScore = 0;
     localStorage.removeItem('highScore');
 
+    // Update auth state to hide team management section
+    updateAuthState();
+    updateTeamDisplay();
+
     alert('Logged out successfully!');
-    window.location.href = 'index.html';
 }
 
 function setupEventListeners() {
+    // Setup paper submission handlers
+    setupPaperSubmissionHandlers();
+    
+    // Setup form validation
+    setupFormValidation();
+
+    // Submission form with enhanced validation
+    const submissionForm = document.getElementById('submissionForm');
+    if (submissionForm) {
+        submissionForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitFiles();
+        });
+    }
+
     // 登录按钮点击事件 - 显示模态框
     const authButton = document.getElementById('authButton');
     if (authButton) {
