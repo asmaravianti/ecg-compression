@@ -13,5 +13,11 @@
     "teamName": "TestTeam",
     "email": "test@example.com",
     "password": "$2b$10$Ql0o3I46ktduLVLtZRGZru6mt.fNmXMJ.7psQUz0.DuckoSiW/BNG"
+  },
+  {
+    "teamName": "Debug Divas",
+    "email": "debugdivas@gmail.com",
+    "password": "$2b$10$Pz.z9rieewp2Q.LWTQ9YouQ/5KgOTlie/lm/ydy806UoNxwfL0wOq",
+    "registeredAt": "2025-06-02T13:41:49.704Z"
   }
 ]

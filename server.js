@@ -1151,6 +1151,164 @@ app.get('/api/test-competition-5899', async (req, res) => {
     }
 });
 
+// Profile management endpoints
+
+// Update team name
+app.post('/api/update-team-name', authenticateToken, async (req, res) => {
+    try {
+        const { newTeamName } = req.body;
+        const userEmail = req.user.email;
+
+        if (!newTeamName || newTeamName.length < 3 || newTeamName.length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Team name must be between 3 and 50 characters'
+            });
+        }
+
+        // Check if team name already exists
+        if (teams.some(t => t.teamName === newTeamName && t.email !== userEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Team name already exists'
+            });
+        }
+
+        // Find and update user
+        const userIndex = teams.findIndex(t => t.email === userEmail);
+        if (userIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        teams[userIndex].teamName = newTeamName;
+        saveUsers(teams);
+
+        console.log('✅ Team name updated for:', userEmail, 'to:', newTeamName);
+        res.json({
+            success: true,
+            message: 'Team name updated successfully',
+            newTeamName
+        });
+    } catch (error) {
+        console.error('❌ Team name update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during team name update'
+        });
+    }
+});
+
+// Update email
+app.post('/api/update-email', authenticateToken, async (req, res) => {
+    try {
+        const { newEmail } = req.body;
+        const userEmail = req.user.email;
+
+        if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a valid email address'
+            });
+        }
+
+        // Check if email already exists
+        if (teams.some(t => t.email === newEmail && t.email !== userEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email already exists'
+            });
+        }
+
+        // Find and update user
+        const userIndex = teams.findIndex(t => t.email === userEmail);
+        if (userIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        teams[userIndex].email = newEmail;
+        saveUsers(teams);
+
+        console.log('✅ Email updated for:', userEmail, 'to:', newEmail);
+        res.json({
+            success: true,
+            message: 'Email updated successfully',
+            newEmail
+        });
+    } catch (error) {
+        console.error('❌ Email update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during email update'
+        });
+    }
+});
+
+// Change password
+app.post('/api/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userEmail = req.user.email;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Current password and new password are required'
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 8 characters long'
+            });
+        }
+
+        // Find user
+        const user = teams.find(t => t.email === userEmail);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Verify current password
+        const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Hash new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        const userIndex = teams.findIndex(t => t.email === userEmail);
+        teams[userIndex].password = hashedNewPassword;
+        saveUsers(teams);
+
+        console.log('✅ Password changed for:', userEmail);
+        res.json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('❌ Password change error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during password change'
+        });
+    }
+});
+
 // 启动服务器
 const PORT = parseInt(process.env.PORT) || 3000;
 

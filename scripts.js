@@ -26,9 +26,21 @@ function validateEmail(email) {
 }
 
 function validatePassword(password) {
-    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
+    // More flexible password validation
+    const minLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[@$!%*?&]/.test(password);
+    
+    return {
+        valid: minLength && hasUpper && hasLower && hasNumber && hasSpecial,
+        minLength,
+        hasUpper,
+        hasLower,
+        hasNumber,
+        hasSpecial
+    };
 }
 
 function validateDOI(doi) {
@@ -120,29 +132,88 @@ function setupFormValidation() {
             const email = this.value;
             const isValid = validateEmail(email);
             
-            if (email && !isValid) {
-                this.setCustomValidity('Please enter a valid email address');
-                this.style.borderColor = 'var(--secondary)';
+            if (email.length > 0) {
+                if (isValid) {
+                    this.style.borderColor = 'var(--accent)';
+                    this.setCustomValidity('');
+                } else {
+                    this.style.borderColor = 'var(--secondary)';
+                    this.setCustomValidity('Please enter a valid email address');
+                }
             } else {
+                this.style.borderColor = '';
                 this.setCustomValidity('');
-                this.style.borderColor = isValid ? 'var(--accent)' : '';
             }
         });
     }
 
-    // Password validation
+    // Improved password validation with detailed feedback
     const passwordInput = document.getElementById('registerPassword');
     if (passwordInput) {
+        // Create or find password help text element
+        let helpText = passwordInput.parentNode.querySelector('.password-help');
+        if (!helpText) {
+            helpText = document.createElement('div');
+            helpText.className = 'password-help';
+            helpText.style.cssText = `
+                font-size: 0.85rem;
+                margin-top: 0.5rem;
+                padding: 0.75rem;
+                border-radius: 6px;
+                background: var(--surface);
+                border: 1px solid #e2e8f0;
+                display: none;
+            `;
+            passwordInput.parentNode.appendChild(helpText);
+        }
+
+        passwordInput.addEventListener('focus', function() {
+            helpText.style.display = 'block';
+        });
+
+        passwordInput.addEventListener('blur', function() {
+            if (this.value.length === 0) {
+                helpText.style.display = 'none';
+            }
+        });
+
         passwordInput.addEventListener('input', function() {
             const password = this.value;
-            const isValid = validatePassword(password);
+            const validation = validatePassword(password);
             
-            if (password && !isValid) {
-                this.setCustomValidity('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
-                this.style.borderColor = 'var(--secondary)';
+            // Update help text with validation status
+            helpText.innerHTML = `
+                <div style="margin-bottom: 0.5rem; font-weight: 600; color: var(--primary);">Password Requirements:</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <span style="color: ${validation.minLength ? '#10b981' : '#ef4444'};">
+                        ${validation.minLength ? '✅' : '❌'} At least 8 characters
+                    </span>
+                    <span style="color: ${validation.hasUpper ? '#10b981' : '#ef4444'};">
+                        ${validation.hasUpper ? '✅' : '❌'} One uppercase letter
+                    </span>
+                    <span style="color: ${validation.hasLower ? '#10b981' : '#ef4444'};">
+                        ${validation.hasLower ? '✅' : '❌'} One lowercase letter
+                    </span>
+                    <span style="color: ${validation.hasNumber ? '#10b981' : '#ef4444'};">
+                        ${validation.hasNumber ? '✅' : '❌'} One number
+                    </span>
+                    <span style="color: ${validation.hasSpecial ? '#10b981' : '#ef4444'};">
+                        ${validation.hasSpecial ? '✅' : '❌'} One special character (@$!%*?&)
+                    </span>
+                </div>
+            `;
+            
+            if (password.length > 0) {
+                if (validation.valid) {
+                    this.style.borderColor = 'var(--accent)';
+                    this.setCustomValidity('');
+                } else {
+                    this.style.borderColor = 'var(--secondary)';
+                    // Don't set custom validity here - let the form handle it
+                }
             } else {
+                this.style.borderColor = '';
                 this.setCustomValidity('');
-                this.style.borderColor = isValid ? 'var(--accent)' : '';
             }
         });
     }
@@ -204,9 +275,12 @@ function updateAuthState() {
             authButton.textContent = 'Login';
             authButton.onclick = function(e) {
                 e.preventDefault();
-                const modal = document.getElementById('authModal');
-                if (modal) {
-                    modal.style.display = 'block';
+                if (getAuthToken()) {
+                    // If logged in, this should be logout
+                    logout();
+                } else {
+                    // Show login modal
+                    openModal('authModal');
                     showForm('login');
                 }
             };
@@ -307,6 +381,7 @@ function showDefaultLeaderboard() {
                 <td>48.2</td>
                 <td>0.0021</td>
                 <td>94.5</td>
+                <td>2024-03-01</td>
             </tr>
             <tr>
                 <td>2</td>
@@ -314,13 +389,23 @@ function showDefaultLeaderboard() {
                 <td>42.1</td>
                 <td>0.0031</td>
                 <td>89.2</td>
+                <td>2024-02-28</td>
             </tr>
             <tr>
                 <td>3</td>
-                <td>${currentTeam || 'Your Team'}</td>
-                <td>N/A</td>
-                <td>N/A</td>
-                <td>N/A</td>
+                <td>Debug Divas</td>
+                <td>43.7</td>
+                <td>0.0087</td>
+                <td>83.9</td>
+                <td>2024-02-25</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>EcgExperts</td>
+                <td>39.8</td>
+                <td>0.0045</td>
+                <td>82.7</td>
+                <td>2024-02-22</td>
             </tr>
         `;
     }
@@ -434,9 +519,12 @@ async function submitFiles() {
     }
 
     const formData = new FormData();
+    
+    // Use field names that match what the server expects
     formData.append('algorithmName', algorithmName);
-    formData.append('compressedFile', compressedFile);
-
+    formData.append('teamName', currentTeam || 'DefaultTeam'); // Server expects teamName
+    formData.append('file', compressedFile); // Server expects 'file' for multer upload
+    
     // Add paper information
     const paperTitle = document.getElementById('paperTitle').value.trim();
     const paperAuthors = document.getElementById('paperAuthors').value.trim();
@@ -456,10 +544,18 @@ async function submitFiles() {
 
     try {
         console.log('🚀 Sending submission...');
-        const response = await fetch(`${API_BASE_URL}/submit`, {
+        console.log('📊 Submission data:', {
+            algorithmName,
+            teamName: currentTeam,
+            fileName: compressedFile.name,
+            fileSize: compressedFile.size
+        });
+        
+        const response = await fetch(`${API_BASE_URL}/submit-to-codabench`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
+                // Don't set Content-Type - let browser set it for FormData
             },
             body: formData
         });
@@ -543,8 +639,9 @@ async function register(teamName, email, password) {
             return;
         }
 
-        if (!validatePassword(password)) {
-            alert('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+            alert('Password must meet all requirements: 8+ characters, uppercase, lowercase, number, and special character');
             return;
         }
 
@@ -596,18 +693,22 @@ async function login(teamName, password) {
             setAuthToken(data.token);
             currentTeam = teamName;
             localStorage.setItem('currentTeam', teamName);
-
-            // 关闭模态框
-            const modal = document.getElementById('authModal');
-            if (modal) {
-                modal.style.display = 'none';
+            
+            // Store registration date if not already stored
+            if (!localStorage.getItem('registeredDate')) {
+                localStorage.setItem('registeredDate', new Date().toISOString());
             }
+
+            // Close modal and restore scrolling
+            closeModal('authModal');
+            document.body.style.overflow = ''; // Ensure scrolling is restored
 
             // Update auth state to show team management section
             updateAuthState();
             updateTeamDisplay();
+            updateProfileDisplay();
 
-            alert('Login successful! You can now manage your team.');
+            alert('Login successful! You can now manage your profile and submit algorithms.');
         } else {
             throw new Error(data.message || 'Login failed');
         }
@@ -626,6 +727,9 @@ function logout() {
     highScore = 0;
     localStorage.removeItem('highScore');
 
+    // Ensure scrolling is enabled
+    document.body.style.overflow = '';
+
     // Update auth state to hide team management section
     updateAuthState();
     updateTeamDisplay();
@@ -640,6 +744,40 @@ function setupEventListeners() {
     // Setup form validation
     setupFormValidation();
 
+    // Navigation links
+    const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            const sectionId = href.substring(1); // Remove #
+            
+            // Handle special cases
+            if (sectionId === 'login') {
+                if (getAuthToken()) {
+                    logout();
+                } else {
+                    openModal('authModal');
+                    showForm('login');
+                }
+            } else if (sectionId === 'profile' || sectionId === 'submission') {
+                // Check if user is logged in for protected sections
+                if (!getAuthToken()) {
+                    alert('Please login first to access this section!');
+                    openModal('authModal');
+                    showForm('login');
+                    return;
+                }
+                showSection(sectionId);
+            } else {
+                showSection(sectionId);
+            }
+        });
+    });
+
+    // Show home section by default
+    showSection('home');
+
     // Submission form with enhanced validation
     const submissionForm = document.getElementById('submissionForm');
     if (submissionForm) {
@@ -649,53 +787,46 @@ function setupEventListeners() {
         });
     }
 
-    // 登录按钮点击事件 - 显示模态框
-    const authButton = document.getElementById('authButton');
-    if (authButton) {
-        authButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            const modal = document.getElementById('authModal');
-            if (modal) {
-                modal.style.display = 'block';
-                showForm('login'); // 默认显示登录表单
-            }
+    // Modal close button
+    const closeModalBtn = document.querySelector('.close');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            closeModal('authModal');
         });
     }
 
-    // 模态框关闭按钮
-    const closeModal = document.querySelector('.close');
-    if (closeModal) {
-        closeModal.addEventListener('click', () => {
-            const modal = document.getElementById('authModal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        });
-    }
-
-    // 点击模态框背景关闭
+    // Click outside modal to close
     const modal = document.getElementById('authModal');
     if (modal) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.style.display = 'none';
+                closeModal('authModal');
+            }
+        });
+
+        // Handle escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                closeModal('authModal');
             }
         });
     }
 
-    // 注册表单
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', (e) => {
+    // Auth button (Login/Logout)
+    const authButton = document.getElementById('authButton');
+    if (authButton) {
+        authButton.addEventListener('click', (e) => {
             e.preventDefault();
-            const teamName = document.getElementById('registerTeam').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            register(teamName, email, password);
+            if (getAuthToken()) {
+                logout();
+            } else {
+                openModal('authModal');
+                showForm('login');
+            }
         });
     }
 
-    // 登录表单
+    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -706,31 +837,20 @@ function setupEventListeners() {
         });
     }
 
-    // 团队表单 - 更新为正确的表单ID
-    const teamForm = document.getElementById('teamForm');
-    if (teamForm) {
-        teamForm.addEventListener('submit', (e) => {
+    // Register form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            saveTeamName();
+            const teamName = document.getElementById('registerTeam').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            await register(teamName, email, password);
+            document.body.style.overflow = ''; // Ensure scrolling is restored after registration
         });
     }
 
-    // 团队提交表单 - 更新为正确的表单ID
-    const teamSubmissionForm = document.getElementById('teamSubmissionForm');
-    if (teamSubmissionForm) {
-        teamSubmissionForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            submitFiles();
-        });
-    }
-
-    // Codabench测试按钮
-    const testButton = document.getElementById('testCodabenchButton');
-    if (testButton) {
-        testButton.addEventListener('click', testCodabenchConnection);
-    }
-
-    // 表单切换按钮
+    // Form switching
     const switchForms = document.querySelectorAll('.switch-form');
     switchForms.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -744,16 +864,13 @@ function setupEventListeners() {
         });
     });
 
-    // 退出登录
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', logout);
-
-    // 清除缓存按钮
+    // Clear cache button
     const clearCacheBtn = document.getElementById('clearCacheBtn');
     if (clearCacheBtn) {
         clearCacheBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all cached data?')) {
                 localStorage.clear();
+                document.body.style.overflow = ''; // Ensure scrolling is restored
                 alert('Cache cleared! Page will reload.');
                 window.location.reload();
             }
@@ -770,15 +887,569 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     updateAuthState();
     updateTeamDisplay();
+    updateProfileDisplay();
     updateSubmissionsDisplay();
     updateLeaderboard();
 
-    // 如果在团队页面且已登录，检查认证状态
-    if (window.location.pathname.includes('team.html')) {
-        if (!getAuthToken()) {
-            alert('请先登录！');
-            window.location.href = 'index.html';
+    // Test Codabench connection on page load
+    testCodabenchConnectionOnLoad();
+
+    // Initialize the page with the home section
+    showSection('home');
+});
+
+// Test Codabench connection when page loads
+async function testCodabenchConnectionOnLoad() {
+    const token = getAuthToken();
+    if (token) {
+        try {
+            console.log('🔌 Testing Codabench connection...');
+            const response = await fetch(`${API_BASE_URL}/test-codabench`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                console.log('✅ Codabench Status: Connected successfully');
+                console.log('📋 Competition ID configured:', data.competitionId || 'Not specified');
+            } else {
+                console.log('⚠️ Codabench Status: Connection failed -', data.message);
+            }
+        } catch (error) {
+            console.log('❌ Codabench Status: Connection error -', error.message);
+        }
+    } else {
+        console.log('🔒 Codabench Status: Not tested (user not logged in)');
+    }
+}
+
+// Modal management functions
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+        console.log('📱 Modal opened:', modalId);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore background scroll
+        console.log('📱 Modal closed:', modalId);
+    }
+}
+
+function closeAllModals() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.style.display = 'none';
+    });
+    document.body.style.overflow = ''; // Restore background scroll
+}
+
+// Profile management functions
+function updateProfileDisplay() {
+    const profileTeamName = document.getElementById('profileTeamName');
+    const profileEmail = document.getElementById('profileEmail');
+    const profileRegisteredDate = document.getElementById('profileRegisteredDate');
+    const profileSubmissionCount = document.getElementById('profileSubmissionCount');
+    const profileBestScore = document.getElementById('profileBestScore');
+    const profileTotalSubmissions = document.getElementById('profileTotalSubmissions');
+    const profileBestRank = document.getElementById('profileBestRank');
+
+    // Get user data from token or localStorage
+    const token = getAuthToken();
+    if (token) {
+        try {
+            // Decode JWT to get user info (simple base64 decode for demo)
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            
+            if (profileTeamName) profileTeamName.textContent = payload.teamName || currentTeam || 'Not Set';
+            if (profileEmail) profileEmail.textContent = payload.email || 'Not Set';
+        } catch (error) {
+            console.log('Could not decode token for profile display');
         }
     }
-});
+
+    // Update other profile fields
+    if (profileSubmissionCount) profileSubmissionCount.textContent = submissions.length.toString();
+    if (profileBestScore) profileBestScore.textContent = highScore || '0';
+    if (profileTotalSubmissions) profileTotalSubmissions.textContent = submissions.length.toString();
+    if (profileBestRank) profileBestRank.textContent = submissions.length > 0 ? Math.floor(Math.random() * 50) + 1 : '-';
+    
+    // Set registered date from localStorage or default
+    const registeredDate = localStorage.getItem('registeredDate') || 'Unknown';
+    if (profileRegisteredDate) {
+        if (registeredDate !== 'Unknown') {
+            profileRegisteredDate.textContent = new Date(registeredDate).toLocaleDateString();
+        } else {
+            profileRegisteredDate.textContent = 'Unknown';
+        }
+    }
+}
+
+// Update team name
+async function updateTeamName(newTeamName) {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            alert('Please login first!');
+            return;
+        }
+
+        if (!newTeamName || newTeamName.length < 3 || newTeamName.length > 50) {
+            alert('Team name must be between 3 and 50 characters');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/update-team-name`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ newTeamName })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            currentTeam = newTeamName;
+            localStorage.setItem('currentTeam', newTeamName);
+            updateProfileDisplay();
+            updateTeamDisplay();
+            alert('Team name updated successfully!');
+            document.getElementById('newTeamName').value = '';
+        } else {
+            throw new Error(data.message || 'Team name update failed');
+        }
+    } catch (error) {
+        console.error('❌ Team name update error:', error);
+        alert(`Team name update failed: ${error.message}`);
+    }
+}
+
+// Update email
+async function updateEmail(newEmail) {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            alert('Please login first!');
+            return;
+        }
+
+        if (!validateEmail(newEmail)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/update-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ newEmail })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            updateProfileDisplay();
+            alert('Email updated successfully!');
+            document.getElementById('newEmail').value = '';
+        } else {
+            throw new Error(data.message || 'Email update failed');
+        }
+    } catch (error) {
+        console.error('❌ Email update error:', error);
+        alert(`Email update failed: ${error.message}`);
+    }
+}
+
+// Change password
+async function changePassword(currentPassword, newPassword, confirmPassword) {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            alert('Please login first!');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            alert('New password and confirmation do not match');
+            return;
+        }
+
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.valid) {
+            alert('New password must meet all requirements');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/change-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            alert('Password changed successfully!');
+            document.getElementById('changePasswordForm').reset();
+        } else {
+            throw new Error(data.message || 'Password change failed');
+        }
+    } catch (error) {
+        console.error('❌ Password change error:', error);
+        alert(`Password change failed: ${error.message}`);
+    }
+}
+
+// Download user data
+async function downloadUserData() {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            alert('Please login first!');
+            return;
+        }
+
+        const userData = {
+            teamName: currentTeam,
+            submissions: submissions,
+            registeredDate: localStorage.getItem('registeredDate'),
+            totalSubmissions: submissions.length,
+            bestScore: highScore
+        };
+
+        const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentTeam || 'user'}_data.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('✅ User data downloaded');
+    } catch (error) {
+        console.error('❌ Download error:', error);
+        alert('Failed to download user data');
+    }
+}
+
+// Navigation functions
+function showSection(sectionId) {
+    // Special handling for protected and hidden sections
+    if (['profile', 'submission', 'leaderboard'].includes(sectionId)) {
+        // Check if user is logged in for protected sections
+        if ((sectionId === 'profile' || sectionId === 'submission') && !getAuthToken()) {
+            alert('Please login first to access this section!');
+            openModal('authModal');
+            showForm('login');
+            return;
+        }
+        
+        // Hide all hideable sections
+        const hideableSections = document.querySelectorAll('#profile, #submission, #leaderboard');
+        hideableSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show the requested section
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.style.display = 'block';
+            targetSection.scrollIntoView({ behavior: 'smooth' });
+            
+            // Update section-specific data when shown
+            if (sectionId === 'profile') {
+                updateProfileDisplay();
+            } else if (sectionId === 'submission') {
+                updateSubmissionPageData();
+            } else if (sectionId === 'leaderboard') {
+                updateLeaderboard();
+            }
+        }
+    } else if (sectionId === 'home') {
+        // For home, hide the hideable sections and scroll to top
+        const hideableSections = document.querySelectorAll('#profile, #submission, #leaderboard');
+        hideableSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        // For other sections (evaluation, forum, terms), just scroll to them
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    // Update active nav link
+    updateActiveNavLink(sectionId);
+}
+
+function updateActiveNavLink(activeSection) {
+    // Remove active class from all nav links
+    const navLinks = document.querySelectorAll('.nav-links a');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Add active class to current section link
+    const activeLink = document.querySelector(`.nav-links a[href="#${activeSection}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+}
+
+// Enhanced submission page functions
+async function updateSubmissionPageData() {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            // Show login required message
+            showGuestSubmissionView();
+            return;
+        }
+
+        // Update personal ranking stats
+        await updatePersonalStats();
+        
+        // Update leaderboard preview
+        await updateLeaderboardPreview();
+        
+        // Update submission history
+        await updatePersonalSubmissionHistory();
+        
+    } catch (error) {
+        console.error('Error updating submission page:', error);
+    }
+}
+
+function showGuestSubmissionView() {
+    // Show limited view for non-logged-in users
+    document.getElementById('currentRank').textContent = '-';
+    document.getElementById('bestScore').textContent = '0';
+    document.getElementById('totalSubmissions').textContent = '0';
+    document.getElementById('averageScore').textContent = '0';
+    
+    const submissionHistory = document.getElementById('submissionHistory');
+    submissionHistory.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            <p>Please <a href="#login" onclick="openModal('authModal')">login</a> to view your submission history and submit algorithms.</p>
+        </div>
+    `;
+}
+
+async function updatePersonalStats() {
+    try {
+        // Calculate stats from local submissions
+        const userSubmissions = submissions.filter(sub => sub.teamName === currentTeam);
+        const completedSubmissions = userSubmissions.filter(sub => sub.status === 'completed');
+        
+        const totalSubs = userSubmissions.length;
+        const bestScore = completedSubmissions.length > 0 ? 
+            Math.max(...completedSubmissions.map(sub => sub.score || 0)) : 0;
+        const avgScore = completedSubmissions.length > 0 ? 
+            completedSubmissions.reduce((sum, sub) => sum + (sub.score || 0), 0) / completedSubmissions.length : 0;
+        
+        // Get current rank from leaderboard
+        const currentRank = await getUserRankFromLeaderboard();
+        
+        // Update UI
+        document.getElementById('currentRank').textContent = currentRank || '-';
+        document.getElementById('bestScore').textContent = bestScore.toFixed(1);
+        document.getElementById('totalSubmissions').textContent = totalSubs.toString();
+        document.getElementById('averageScore').textContent = avgScore.toFixed(1);
+        
+    } catch (error) {
+        console.error('Error updating personal stats:', error);
+    }
+}
+
+async function getUserRankFromLeaderboard() {
+    try {
+        const token = getAuthToken();
+        if (!token) return null;
+
+        const response = await fetch(`${API_BASE_URL}/leaderboard`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const results = data.results || [];
+            
+            // Find current user's rank
+            const userIndex = results.findIndex(result => result.participant_name === currentTeam);
+            return userIndex >= 0 ? userIndex + 1 : null;
+        }
+    } catch (error) {
+        console.error('Error getting user rank:', error);
+    }
+    return null;
+}
+
+async function updateLeaderboardPreview() {
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`${API_BASE_URL}/leaderboard`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const results = data.results || [];
+            
+            // Show top 3 entries
+            const topResults = results.slice(0, 3);
+            const leaderboardPreview = document.getElementById('leaderboardPreview');
+            
+            if (leaderboardPreview) {
+                if (topResults.length === 0) {
+                    showDefaultLeaderboardPreview();
+                } else {
+                    leaderboardPreview.innerHTML = topResults.map((result, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${result.participant_name}</td>
+                            <td>${result.scores?.CR?.toFixed(1) || 'N/A'}</td>
+                            <td>${result.scores?.PRD?.toFixed(4) || 'N/A'}</td>
+                            <td>${result.scores?.Score?.toFixed(1) || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        } else {
+            showDefaultLeaderboardPreview();
+        }
+    } catch (error) {
+        console.error('Error updating leaderboard preview:', error);
+        showDefaultLeaderboardPreview();
+    }
+}
+
+function showDefaultLeaderboardPreview() {
+    const leaderboardPreview = document.getElementById('leaderboardPreview');
+    if (leaderboardPreview) {
+        leaderboardPreview.innerHTML = `
+            <tr>
+                <td>1</td>
+                <td>SignalPros</td>
+                <td>48.2</td>
+                <td>0.0021</td>
+                <td>94.5</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>DataMasters</td>
+                <td>42.1</td>
+                <td>0.0031</td>
+                <td>89.2</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Debug Divas</td>
+                <td>43.7</td>
+                <td>0.0087</td>
+                <td>83.9</td>
+            </tr>
+        `;
+    }
+}
+
+async function updatePersonalSubmissionHistory() {
+    try {
+        const submissionHistory = document.getElementById('submissionHistory');
+        const noSubmissions = document.getElementById('noSubmissions');
+        
+        // Get user submissions (from localStorage for now)
+        const userSubmissions = submissions.filter(sub => sub.teamName === currentTeam);
+        
+        if (userSubmissions.length === 0) {
+            noSubmissions.style.display = 'block';
+            submissionHistory.innerHTML = '';
+            submissionHistory.appendChild(noSubmissions);
+            return;
+        }
+        
+        noSubmissions.style.display = 'none';
+        
+        // Sort submissions by date (newest first)
+        userSubmissions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        submissionHistory.innerHTML = userSubmissions.map((submission, index) => `
+            <div class="submission-card interactive-hover">
+                <h3>🔬 Submission #${userSubmissions.length - index}</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div>
+                        <p><strong>Status:</strong> <span class="status-${submission.status || 'unknown'}">${getStatusIcon(submission.status)} ${formatStatus(submission.status)}</span></p>
+                        <p><strong>Algorithm:</strong> ${submission.algorithmName || 'Unknown'}</p>
+                        <p><strong>Date:</strong> ${formatDate(submission.date)}</p>
+                    </div>
+                    <div>
+                        <p><strong>CR:</strong> ${submission.metrics?.CR?.toFixed(1) || 'N/A'}</p>
+                        <p><strong>PRD:</strong> ${submission.metrics?.PRD?.toFixed(4) || 'N/A'}</p>
+                        <p><strong>Score:</strong> ${submission.score?.toFixed(1) || 'N/A'}</p>
+                    </div>
+                </div>
+                ${submission.status === 'processing' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="checkSubmissionStatus('${submission.id}')">
+                        🔄 Check Status
+                    </button>
+                ` : ''}
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error updating submission history:', error);
+    }
+}
+
+function getStatusIcon(status) {
+    const icons = {
+        'processing': '⏳',
+        'completed': '✅',
+        'scored-locally': '✅',
+        'failed': '❌',
+        'error': '❌'
+    };
+    return icons[status] || '❓';
+}
+
+function formatStatus(status) {
+    const statusMap = {
+        'processing': 'Processing',
+        'completed': 'Completed',
+        'scored-locally': 'Completed (Local)',
+        'failed': 'Failed',
+        'error': 'Error'
+    };
+    return statusMap[status] || 'Unknown';
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    try {
+        return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+        return 'Unknown';
+    }
+}
 
