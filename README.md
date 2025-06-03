@@ -1,27 +1,27 @@
 # ECG Compression Benchmark Platform
 
-这是一个用于ECG压缩算法评估的Web平台，支持与Codabench API集成。
+A web platform for evaluating ECG compression algorithms with Codabench API integration.
 
-## 功能特性
+## Features
 
-- 🔐 用户注册和登录系统
-- 📊 实时排行榜显示
-- 📁 算法文件上传和提交
-- 🔗 Codabench API集成
-- 📈 本地评分系统（作为备用）
-- 🧪 API测试工具
+- 🔐 User Registration and Authentication
+- 📊 Real-time Leaderboard
+- 📁 Algorithm Upload and Submission
+- 🔗 Codabench API Integration
+- 📈 Local Scoring System (as backup)
+- 🧪 API Testing Tools
 
-## 快速开始
+## Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 2. 环境配置
+### 2. Environment Setup
 
-确保`.env`文件包含正确的配置：
+Create a `.env` file with the following configuration:
 
 ```env
 # Server configuration
@@ -40,110 +40,86 @@ MAX_FILE_SIZE=50000000
 UPLOAD_DIR=./uploads
 ```
 
-### 3. 启动服务器
+### 3. Start the Server
 
 ```bash
-# 方式1: 直接启动
+# Option 1: Direct start
 npm start
 
-# 方式2: 使用启动脚本
+# Option 2: Using start script
 node start-server.js
 
-# 方式3: 开发模式
+# Option 3: Development mode
 npm run dev
 ```
 
-### 4. 访问应用
+### 4. Access the Application
 
-- 主页: http://localhost:3000/index.html
-- 团队页面: http://localhost:3000/team.html
-- API测试: http://localhost:3000/api-test.html
+Visit http://localhost:3000 to access the main application.
 
-## API端点
+## API Endpoints
 
-### 认证相关
-- `POST /api/register` - 用户注册
-- `POST /api/login` - 用户登录
+### Authentication
+- `POST /api/register` - Register new user
+- `POST /api/login` - User login
 
-### 竞赛相关
-- `GET /api/leaderboard` - 获取排行榜
-- `POST /api/submit-to-codabench` - 提交算法
-- `GET /api/submission-status/:id` - 查询提交状态
+### Competition
+- `GET /api/leaderboard` - Get competition leaderboard
+- `POST /api/submit-to-codabench` - Submit algorithm
+- `GET /api/submission-status/:id` - Check submission status
 
-### Codabench集成
-- `GET /api/test-codabench` - 测试Codabench连接
-- `GET /api/check-available-endpoints` - 检查可用端点
+### Codabench Integration
+- `GET /api/test-codabench` - Test Codabench connection
+- `GET /api/check-available-endpoints` - Check available endpoints
 
-### 调试工具
-- `GET /api/debug-info` - 获取调试信息
-- `GET /api/debug-uploads` - 查看上传文件
+## Usage Guide
 
-## 使用流程
+1. **Register**: Create an account on the main page
+2. **Login**: Use your credentials to log in
+3. **Upload Algorithm**: Submit your algorithm in .zip format
+4. **View Results**: Check your scores on the leaderboard
 
-1. **注册账户**: 在主页点击"Register"创建账户
-2. **登录系统**: 使用注册的凭据登录
-3. **访问团队页面**: 登录后可访问team.html页面
-4. **上传算法**: 在团队页面上传.zip格式的算法文件
-5. **查看结果**: 在排行榜中查看评分结果
+## Troubleshooting
 
-## 故障排除
+### Common Issues
 
-### 常见问题
+1. **404 Error - API Endpoint Not Available**
+   - Ensure the server is running
+   - Check if port 3000 is available
+   - Verify API_BASE_URL setting
 
-1. **404错误 - API端点不可用**
-   - 确保服务器正在运行
-   - 检查端口3000是否被占用
-   - 验证API_BASE_URL设置正确
+2. **Authentication Failed**
+   - Check JWT token validity
+   - Verify login status
+   - Clear browser localStorage and login again
 
-2. **认证失败**
-   - 检查JWT token是否有效
-   - 确认登录状态
-   - 清除浏览器localStorage重新登录
+3. **Codabench Connection Failed**
+   - Verify Codabench credentials in .env file
+   - Check network connection
+   - Use API test page for diagnostics
 
-3. **Codabench连接失败**
-   - 验证.env文件中的Codabench凭据
-   - 检查网络连接
-   - 使用API测试页面诊断问题
-
-### 调试步骤
-
-1. 访问 http://localhost:3000/api-test.html
-2. 依次测试各个API端点
-3. 查看浏览器控制台错误信息
-4. 检查服务器日志输出
-
-## 开发说明
-
-### 项目结构
+## Project Structure
 
 ```
 ecg-compression/
-├── server.js          # 主服务器文件
-├── scripts.js         # 前端JavaScript
-├── styles.css         # 样式文件
-├── index.html         # 主页
-├── team.html          # 团队页面
-├── api-test.html      # API测试页面
-├── .env               # 环境变量
-├── package.json       # 项目配置
-└── uploads/           # 上传文件目录
+├── server.js          # Main server file
+├── scripts.js         # Frontend JavaScript
+├── styles.css         # Styles
+├── index.html         # Main page
+├── forum.js          # Forum functionality
+├── .env              # Environment variables
+├── package.json      # Project configuration
+└── uploads/          # Upload directory
 ```
 
-### 技术栈
+## Tech Stack
 
-- **后端**: Node.js + Express
-- **认证**: JWT
-- **文件上传**: Multer
-- **API集成**: Axios
-- **前端**: 原生HTML/CSS/JavaScript
+- **Backend**: Node.js + Express
+- **Authentication**: JWT
+- **File Upload**: Multer
+- **API Integration**: Axios
+- **Frontend**: HTML/CSS/JavaScript
 
-## 贡献指南
-
-1. Fork项目
-2. 创建功能分支
-3. 提交更改
-4. 创建Pull Request
-
-## 许可证
+## License
 
 MIT License
