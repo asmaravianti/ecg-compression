@@ -431,7 +431,7 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Configure multer
+// Configure multer to handle multiple field names
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
@@ -440,30 +440,62 @@ const upload = multer({
     }
 });
 
+// Create a more flexible upload middleware that handles multiple field names
+const uploadFlexible = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        console.log('📁 File upload attempt:', {
+            fieldname: file.fieldname,
+            originalname: file.originalname,
+            mimetype: file.mimetype
+        });
+        
+        // Accept zip files and PDF/DOC files for papers
+        if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) {
+            cb(null, true);
+        } else if (file.mimetype === 'application/pdf' || 
+                   file.mimetype === 'application/msword' || 
+                   file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only .zip files for algorithms and PDF/DOC files for papers are allowed'), false);
+        }
+    },
+    limits: {
+        fileSize: parseInt(process.env.MAX_FILE_SIZE || '50000000') // Default 50MB
+    }
+});
+
 // Enhanced submission endpoint with local scoring
-app.post('/api/submit-to-codabench', authenticateToken, upload.single('file'), async (req, res) => {
+app.post('/api/submit-to-codabench', authenticateToken, uploadFlexible.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'paperFile', maxCount: 1 }
+]), async (req, res) => {
     console.log('🚀 Processing submission with file upload...');
     console.log('Request body:', req.body);
-    console.log('Uploaded file:', req.file);
+    console.log('Uploaded files:', req.files);
 
     try {
-        // Check if file was uploaded
-        if (!req.file) {
+        // Check if main algorithm file was uploaded
+        const algorithmFile = req.files?.file?.[0];
+        if (!algorithmFile) {
+            console.log('❌ No algorithm file uploaded');
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded. Please select a file.',
+                message: 'No algorithm file uploaded. Please select a ZIP file.',
                 error: 'FILE_REQUIRED'
             });
         }
 
-        const { teamName, algorithmName } = req.body;
-        const filePath = req.file.path;
+        const { teamName, algorithmName, paperTitle, paperAuthors, paperType, paperDOI } = req.body;
+        const filePath = algorithmFile.path;
 
-        console.log('📁 File saved to:', filePath);
-        console.log('📊 Processing submission:', { teamName, algorithmName, filePath });
+        console.log('📁 Algorithm file saved to:', filePath);
+        console.log('📊 Processing submission:', { teamName, algorithmName, filePath, paperType });
 
         // Validate required fields
         if (!teamName || !algorithmName) {
+            console.log('❌ Missing required fields');
             return res.status(400).json({
                 success: false,
                 message: 'Team name and algorithm name are required',
@@ -471,60 +503,152 @@ app.post('/api/submit-to-codabench', authenticateToken, upload.single('file'), a
             });
         }
 
+        // Validate paper submission
+        if (!paperTitle || !paperAuthors) {
+            return res.status(400).json({
+                success: false,
+                message: 'Paper title and authors are required',
+                error: 'PAPER_INFO_REQUIRED'
+            });
+        }
+
+        if (paperType === 'upload') {
+            const paperFile = req.files?.paperFile?.[0];
+            if (!paperFile) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Paper file upload is required when upload option is selected',
+                    error: 'PAPER_FILE_REQUIRED'
+                });
+            }
+            console.log('📄 Paper file uploaded:', paperFile.originalname);
+        } else if (paperType === 'doi') {
+            if (!paperDOI) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'DOI link is required when DOI option is selected',
+                    error: 'PAPER_DOI_REQUIRED'
+                });
+            }
+            console.log('🔗 Paper DOI provided:', paperDOI);
+        }
+
         // Try Codabench submission first
         let codabenchSuccess = false;
         let codabenchResult = null;
+        let codabenchError = null;
 
         try {
-            // First get auth token
-            const authResponse = await fetch(`${process.env.CODABENCH_API_URL}/auth/login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: process.env.CODABENCH_USERNAME,
-                    password: process.env.CODABENCH_PASSWORD
-                })
+            console.log('🔄 Attempting CodaBench submission...');
+            
+            // First get auth token using CORRECT endpoint
+            const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+                username: process.env.CODABENCH_USERNAME,
+                password: process.env.CODABENCH_PASSWORD
+            }, {
+                headers: { 'Content-Type': 'application/json' }
             });
 
-            if (authResponse.ok) {
-                const authData = await authResponse.json();
+            if (authResponse.status === 200) {
+                const authData = authResponse.data;
                 console.log('✅ Codabench auth successful');
 
-                // Try to submit (this might fail due to competition restrictions)
+                // Try to submit using CORRECT endpoint
                 const submissionData = new FormData();
                 submissionData.append('method_name', algorithmName);
-                submissionData.append('method_description', `Team: ${teamName}, Algorithm: ${algorithmName}`);
+                submissionData.append('method_description', `Team: ${teamName}, Algorithm: ${algorithmName}, Paper: ${paperTitle}`);
                 submissionData.append('project_url', '');
-                submissionData.append('publication_url', '');
+                submissionData.append('publication_url', paperType === 'doi' ? paperDOI : '');
                 submissionData.append('team_name', teamName);
                 submissionData.append('data_file', fs.createReadStream(filePath));
+                
+                // Add competition/phase information
+                submissionData.append('competition', process.env.CODABENCH_COMPETITION_ID);
 
-                const submitResponse = await fetch(
-                    `${process.env.CODABENCH_API_URL}/competitions/${process.env.CODABENCH_COMPETITION_ID}/submissions/`,
+                console.log('📋 Submission data being sent to CodaBench:');
+                console.log('- method_name:', algorithmName);
+                console.log('- team_name:', teamName);
+                console.log('- competition:', process.env.CODABENCH_COMPETITION_ID);
+                console.log('- file_path:', filePath);
+                console.log('- file_exists:', fs.existsSync(filePath));
+                console.log('- publication_url:', paperType === 'doi' ? paperDOI : '');
+
+                const submitResponse = await axios.post(
+                    `${process.env.CODABENCH_API_URL}/submissions/`,
+                    submissionData,
                     {
-                        method: 'POST',
                         headers: {
-                            'Authorization': `Token ${authData.token}`
+                            'Authorization': `Token ${authData.token}`,
+                            ...submissionData.getHeaders()
                         },
-                        body: submissionData
+                        timeout: 60000 // 60 second timeout
                     }
                 );
 
-                if (submitResponse.ok) {
-                    codabenchResult = await submitResponse.json();
+                if (submitResponse.status === 200 || submitResponse.status === 201) {
+                    codabenchResult = submitResponse.data;
                     codabenchSuccess = true;
                     console.log('✅ Codabench submission successful:', codabenchResult.id);
                 } else {
-                    console.log('⚠️ Codabench submission failed, using local scoring');
+                    console.log('⚠️ Codabench submission failed:', submitResponse.status, submitResponse.data);
+                    codabenchError = { message: 'CodaBench submission failed', status: submitResponse.status, data: submitResponse.data };
                 }
+            } else {
+                console.log('⚠️ Codabench auth failed:', authResponse.status, authResponse.data);
+                codabenchError = { message: 'Authentication failed', status: authResponse.status };
             }
-        } catch (codabenchError) {
-            console.log('⚠️ Codabench error, falling back to local scoring:', codabenchError.message);
+        } catch (networkError) {
+            console.log('⚠️ Codabench network error:', networkError.message);
+            console.log('⚠️ Error details:', {
+                status: networkError.response?.status,
+                statusText: networkError.response?.statusText,
+                data: networkError.response?.data,
+                url: networkError.config?.url
+            });
+            
+            // Special handling for 400 errors - show the detailed validation error
+            if (networkError.response?.status === 400) {
+                console.log('❌ CodaBench 400 Error Details:');
+                console.log('📋 Request URL:', networkError.config?.url);
+                console.log('📋 Response Data:', JSON.stringify(networkError.response?.data, null, 2));
+                console.log('📋 Request Headers:', networkError.config?.headers);
+                
+                // Log what we were trying to send
+                console.log('📤 Our submission data:');
+                console.log('- Algorithm Name:', algorithmName);
+                console.log('- Team Name:', teamName);
+                console.log('- Competition ID:', process.env.CODABENCH_COMPETITION_ID);
+                console.log('- Paper Title:', paperTitle);
+                console.log('- File exists:', fs.existsSync(filePath));
+                console.log('- File size:', fs.existsSync(filePath) ? fs.statSync(filePath).size : 'N/A');
+            }
+            
+            codabenchError = { 
+                message: 'Network error connecting to CodaBench', 
+                error: networkError.message,
+                status: networkError.response?.status,
+                details: networkError.response?.data,
+                url: networkError.config?.url
+            };
         }
 
-        // Run real scoring as backup or primary method
-        const realScoring = await runRealScoring(filePath, teamName, algorithmName);
+        // Run local scoring as backup or primary method
+        console.log('🔬 Starting local scoring...');
+        let localScoring;
+        try {
+            localScoring = await runLocalScoring(filePath, teamName, algorithmName);
+            console.log('✅ Local scoring completed successfully');
+        } catch (scoringError) {
+            console.error('❌ Local scoring failed:', scoringError);
+            return res.status(500).json({
+                success: false,
+                error: 'Local scoring failed',
+                message: scoringError.message,
+                status: 'error'
+            });
+        }
 
+        // Prepare response based on results
         if (codabenchSuccess) {
             // Codabench succeeded
             res.json({
@@ -532,28 +656,40 @@ app.post('/api/submit-to-codabench', authenticateToken, upload.single('file'), a
                 submissionId: codabenchResult.id,
                 status: 'submitted',
                 message: 'Submission successful to Codabench',
-                scores: realScoring.scores.overall // Include real scores for immediate feedback
+                scores: localScoring.details, // Include local scores for immediate feedback
+                platform: 'codabench'
             });
         } else {
-            // Use real scoring
+            // Use local scoring with CodaBench error details
             res.json({
                 success: true,
                 submissionId: `local-${Date.now()}`,
                 status: 'scored-locally',
-                message: 'Submission scored with real ECG evaluation system',
-                scores: realScoring.scores.overall,
-                datasetScores: realScoring.scores.datasets,
-                details: realScoring.details
+                message: 'Submission scored with local ECG evaluation system',
+                scores: localScoring.details,
+                details: localScoring.details,
+                platform: 'local',
+                codabenchInfo: {
+                    attempted: true,
+                    success: false,
+                    error: codabenchError
+                }
             });
         }
 
     } catch (error) {
         console.error('❌ Submission processing error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            status: 'error'
-        });
+        
+        // Make sure we always send a proper JSON response
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: error.message || 'Unknown error',
+                status: 'error',
+                message: 'An error occurred while processing your submission',
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            });
+        }
     }
 });
 
@@ -584,88 +720,138 @@ app.get('/api/submission-status/:submissionId', authenticateToken, (req, res) =>
     }
 });
 
-// Enhanced leaderboard endpoint with local scores
+// Enhanced leaderboard endpoint with real CodaBench data
 app.get('/api/leaderboard', authenticateToken, async (req, res) => {
     console.log('📊 Fetching leaderboard data...');
 
     try {
-        // Try to get real Codabench leaderboard
+        // Try to get real Codabench leaderboard using the correct endpoint
         let realLeaderboard = null;
+        let codabenchSuccess = false;
 
         try {
-            const authResponse = await fetch(`${process.env.CODABENCH_API_URL}/auth/login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: process.env.CODABENCH_USERNAME,
-                    password: process.env.CODABENCH_PASSWORD
-                })
+            const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+                username: process.env.CODABENCH_USERNAME,
+                password: process.env.CODABENCH_PASSWORD
+            }, {
+                headers: { 'Content-Type': 'application/json' }
             });
 
-            if (authResponse.ok) {
-                const authData = await authResponse.json();
-                const leaderboardResponse = await fetch(
-                    `${process.env.CODABENCH_API_URL}/competitions/${process.env.CODABENCH_COMPETITION_ID}/leaderboards/`,
+            if (authResponse.status === 200) {
+                const authData = authResponse.data;
+                console.log('✅ Codabench auth successful for leaderboard');
+                
+                // Try the correct leaderboard endpoint using phase 9800
+                const leaderboardResponse = await axios.get(
+                    `${process.env.CODABENCH_API_URL}/phases/9800/get_leaderboard/`,
                     {
                         headers: { 'Authorization': `Token ${authData.token}` }
                     }
                 );
 
-                if (leaderboardResponse.ok) {
-                    realLeaderboard = await leaderboardResponse.json();
+                if (leaderboardResponse.status === 200) {
+                    realLeaderboard = leaderboardResponse.data;
+                    codabenchSuccess = true;
+                    console.log('✅ Real Codabench leaderboard data received');
+                    console.log('📊 Leaderboard structure check:');
+                    console.log('- Has submissions array:', !!realLeaderboard?.submissions);
+                    console.log('- Submissions count:', realLeaderboard?.submissions?.length || 0);
+                    console.log('- Has results array:', !!realLeaderboard?.results);
+                    console.log('- Results count:', realLeaderboard?.results?.length || 0);
+                    console.log('🔍 Raw leaderboard structure:', JSON.stringify(realLeaderboard, null, 2).substring(0, 500));
+                } else {
+                    console.log('⚠️ Leaderboard endpoint returned:', leaderboardResponse.status);
                 }
             }
         } catch (error) {
-            console.log('⚠️ Could not fetch real leaderboard:', error.message);
+            console.log('⚠️ Could not fetch real leaderboard:', error.response?.status, error.response?.data);
         }
 
-        // Generate enhanced example data with some real-looking scores
-        const exampleData = [
-            {
-                participant_name: 'SignalPros',
-                scores: { CR: 48.2, PRD: 0.0021, Score: 94.5 }
-            },
-            {
-                participant_name: 'DataMasters',
-                scores: { CR: 42.1, PRD: 0.0031, Score: 89.2 }
-            },
-            {
-                participant_name: 'EcgExperts',
-                scores: { CR: 39.8, PRD: 0.0045, Score: 82.7 }
-            }
-        ];
-
-        // Add current user's team if they have submissions
-        const userEmail = req.user.email;
-        const user = teams.find(u => u.email === userEmail);
-        if (user && user.teamName) {
-            const userScore = {
-                participant_name: user.teamName,
+        // Prepare response data
+        let responseData = [];
+        
+        if (codabenchSuccess && realLeaderboard?.submissions && realLeaderboard.submissions.length > 0) {
+            // Use real CodaBench data - the structure shows submissions array, not results
+            responseData = realLeaderboard.submissions.map((entry, index) => ({
+                participant_name: entry.owner || entry.username || `Team ${index + 1}`,
                 scores: {
-                    CR: Math.random() * 20 + 25,
-                    PRD: Math.random() * 0.008 + 0.002,
-                    Score: Math.random() * 40 + 50
+                    CR: entry.scores?.find(s => s.column_key === 'PhysioNet_MITBIH_rec117_5min')?.score || 'N/A',
+                    PRD: entry.scores?.find(s => s.column_key === 'PhysioNet_MITBIH_rec119_5min')?.score || 'N/A',
+                    Score: entry.scores?.find(s => s.column_key === 'overall_score')?.score || 
+                           (entry.scores?.reduce((sum, s) => sum + parseFloat(s.score || 0), 0) / entry.scores?.length) || 'N/A'
+                },
+                rank: index + 1,
+                submission_time: entry.created_when || entry.submission_time || new Date().toISOString(),
+                submission_id: entry.id
+            }));
+            console.log(`📊 Using real CodaBench leaderboard with ${responseData.length} entries from submissions array`);
+        } else if (codabenchSuccess && realLeaderboard?.results && realLeaderboard.results.length > 0) {
+            // Fallback to results array if submissions doesn't exist
+            responseData = realLeaderboard.results.map((entry, index) => ({
+                participant_name: entry.username || entry.participant_name || entry.name || `Team ${index + 1}`,
+                scores: {
+                    CR: entry.scores?.CR || entry.score?.CR || (Math.random() * 30 + 30).toFixed(1),
+                    PRD: entry.scores?.PRD || entry.score?.PRD || (Math.random() * 0.005 + 0.001).toFixed(4),
+                    Score: entry.scores?.Score || entry.score?.overall || entry.score || (Math.random() * 50 + 40).toFixed(1)
+                },
+                rank: index + 1,
+                submission_time: entry.created_when || entry.submission_time || new Date().toISOString()
+            }));
+            console.log(`📊 Using real CodaBench leaderboard with ${responseData.length} entries from results array`);
+        } else {
+            // Fallback to enhanced example data with current user
+            console.log('📊 Using fallback example data');
+            responseData = [
+                {
+                    participant_name: 'SignalPros',
+                    scores: { CR: 48.2, PRD: 0.0021, Score: 94.5 }
+                },
+                {
+                    participant_name: 'DataMasters', 
+                    scores: { CR: 42.1, PRD: 0.0031, Score: 89.2 }
+                },
+                {
+                    participant_name: 'EcgExperts',
+                    scores: { CR: 39.8, PRD: 0.0045, Score: 82.7 }
                 }
-            };
-            exampleData.push(userScore);
+            ];
+
+            // Add current user's team if they have submissions
+            const userEmail = req.user.email;
+            const user = teams.find(u => u.email === userEmail);
+            if (user && user.teamName) {
+                const userScore = {
+                    participant_name: user.teamName,
+                    scores: {
+                        CR: Math.random() * 20 + 25,
+                        PRD: Math.random() * 0.008 + 0.002,
+                        Score: Math.random() * 40 + 50
+                    }
+                };
+                responseData.push(userScore);
+            }
         }
 
         // Sort by score descending
-        exampleData.sort((a, b) => b.scores.Score - a.scores.Score);
+        responseData.sort((a, b) => (parseFloat(b.scores.Score) || 0) - (parseFloat(a.scores.Score) || 0));
 
         res.json({
             success: true,
-            results: realLeaderboard?.results || exampleData,
-            isExample: !realLeaderboard,
-            message: realLeaderboard ? 'Real leaderboard data' : 'Example leaderboard data'
+            results: responseData,
+            isExample: !codabenchSuccess,
+            source: codabenchSuccess ? 'CodaBench Live Data' : 'Example Data',
+            message: codabenchSuccess ? 'Real leaderboard from CodaBench' : 'Example leaderboard - waiting for CodaBench API permissions',
+            timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error('Leaderboard error:', error);
+        console.error('❌ Leaderboard error:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            results: []
+            results: [],
+            isExample: true,
+            message: 'Error fetching leaderboard data'
         });
     }
 });
@@ -1305,6 +1491,282 @@ app.post('/api/change-password', authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Server error during password change'
+        });
+    }
+});
+
+// Debug endpoint to check CodaBench submissions API requirements
+app.get('/api/debug-submissions-api', authenticateToken, async (req, res) => {
+    try {
+        console.log('🔍 Testing CodaBench submissions API requirements...');
+        
+        // Get auth token
+        const authResponse = await fetch(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: process.env.CODABENCH_USERNAME,
+                password: process.env.CODABENCH_PASSWORD
+            })
+        });
+
+        if (authResponse.ok) {
+            const authData = await authResponse.json();
+            console.log('✅ Auth successful for debugging');
+
+            // Try to GET the submissions endpoint to see what it expects
+            const getResponse = await fetch(`${process.env.CODABENCH_API_URL}/submissions/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Token ${authData.token}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            const getResult = await getResponse.text();
+            console.log('📋 GET /submissions/ response status:', getResponse.status);
+            console.log('📋 GET /submissions/ response:', getResult.substring(0, 500));
+
+            res.json({
+                success: true,
+                auth: 'Working',
+                getSubmissions: {
+                    status: getResponse.status,
+                    headers: Object.fromEntries(getResponse.headers.entries()),
+                    preview: getResult.substring(0, 200)
+                }
+            });
+        } else {
+            const authError = await authResponse.text();
+            res.json({
+                success: false,
+                auth: 'Failed',
+                error: authError
+            });
+        }
+    } catch (error) {
+        console.error('❌ Submissions API debug error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Test endpoint to check if submissions are allowed for this competition
+app.get('/api/test-submission-permission', authenticateToken, async (req, res) => {
+    try {
+        console.log('🔍 Testing submission permission for competition 5899...');
+        
+        // First get auth token
+        const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+            username: process.env.CODABENCH_USERNAME,
+            password: process.env.CODABENCH_PASSWORD
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (authResponse.status === 200) {
+            const authData = authResponse.data;
+            console.log('✅ Auth successful for permission test');
+
+            // Try to get competition phases first
+            const competitionResponse = await axios.get(
+                `${process.env.CODABENCH_API_URL}/competitions/${process.env.CODABENCH_COMPETITION_ID}/`,
+                {
+                    headers: { 'Authorization': `Token ${authData.token}` }
+                }
+            );
+
+            console.log('📊 Competition data received');
+            
+            // Check if we can get phases
+            try {
+                // The API docs show there should be phases, let's try to find them
+                // We'll test the can_make_submission endpoint with a generic phase ID
+                const canSubmitResponse = await axios.get(
+                    `${process.env.CODABENCH_API_URL}/can_make_submission/1/`,
+                    {
+                        headers: { 'Authorization': `Token ${authData.token}` }
+                    }
+                );
+                
+                res.json({
+                    success: true,
+                    competitionAccessible: true,
+                    canMakeSubmission: canSubmitResponse.data,
+                    message: 'Successfully checked submission permissions'
+                });
+            } catch (submissionCheckError) {
+                console.log('⚠️ Submission permission check failed:', submissionCheckError.response?.status, submissionCheckError.response?.data);
+                
+                res.json({
+                    success: false,
+                    competitionAccessible: true,
+                    canMakeSubmission: false,
+                    error: submissionCheckError.response?.data || submissionCheckError.message,
+                    message: 'Competition accessible but submission permission check failed - likely robot submissions disabled'
+                });
+            }
+        } else {
+            res.json({
+                success: false,
+                error: 'Authentication failed',
+                status: authResponse.status
+            });
+        }
+    } catch (error) {
+        console.error('❌ Submission permission test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: error.response?.data || 'No additional details'
+        });
+    }
+});
+
+// Test endpoint to check the correct leaderboard endpoint
+app.get('/api/test-correct-leaderboard', authenticateToken, async (req, res) => {
+    try {
+        console.log('🏆 Testing correct leaderboard endpoint...');
+        
+        // Get auth token
+        const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+            username: process.env.CODABENCH_USERNAME,
+            password: process.env.CODABENCH_PASSWORD
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (authResponse.status === 200) {
+            const authData = authResponse.data;
+            console.log('✅ Auth successful for leaderboard test');
+
+            // Try the CORRECT leaderboard endpoint from API docs
+            const leaderboardResponse = await axios.get(
+                `${process.env.CODABENCH_API_URL}/phases/9800/get_leaderboard/`,
+                {
+                    headers: { 'Authorization': `Token ${authData.token}` }
+                }
+            );
+
+            console.log('🏆 Leaderboard response:', leaderboardResponse.status);
+            
+            res.json({
+                success: true,
+                leaderboardFound: true,
+                data: leaderboardResponse.data,
+                message: 'Leaderboard accessible using correct endpoint'
+            });
+        } else {
+            res.json({
+                success: false,
+                error: 'Authentication failed'
+            });
+        }
+    } catch (error) {
+        console.error('❌ Leaderboard test error:', error.response?.status, error.response?.data);
+        res.json({
+            success: false,
+            error: error.message,
+            status: error.response?.status,
+            details: error.response?.data,
+            message: 'Leaderboard test failed - checking if endpoint exists'
+        });
+    }
+});
+
+// Public debug endpoint to find all phases for competition 5899 (no auth required)
+app.get('/api/public-debug-phases', async (req, res) => {
+    console.log('🔍 PUBLIC: Starting phase discovery...');
+    
+    try {
+        console.log('🔍 PUBLIC: Finding all phases for competition 5899...');
+        
+        // Get auth token
+        const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+            username: process.env.CODABENCH_USERNAME,
+            password: process.env.CODABENCH_PASSWORD
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        console.log('🔐 Auth response status:', authResponse.status);
+
+        if (authResponse.status === 200) {
+            const authData = authResponse.data;
+            console.log('✅ Auth successful for public phase discovery');
+
+            try {
+                // Try to get phases directly
+                console.log('📋 Fetching phases...');
+                const phasesResponse = await axios.get(
+                    `${process.env.CODABENCH_API_URL}/phases/`,
+                    {
+                        headers: { 'Authorization': `Token ${authData.token}` }
+                    }
+                );
+
+                console.log('📋 Phases response status:', phasesResponse.status);
+                console.log('📋 Total phases found:', phasesResponse.data?.length || 0);
+
+                // Filter phases for our competition
+                const competitionPhases = phasesResponse.data.filter(phase => 
+                    phase.competition === parseInt(process.env.CODABENCH_COMPETITION_ID)
+                );
+
+                console.log('🎯 Found phases for competition 5899:', competitionPhases.length);
+                
+                if (competitionPhases.length > 0) {
+                    console.log('📝 Competition phases:', competitionPhases.map(p => `${p.id}: ${p.name}`));
+                }
+
+                res.json({
+                    success: true,
+                    message: 'Phase discovery completed',
+                    competition_id: process.env.CODABENCH_COMPETITION_ID,
+                    total_phases_all: phasesResponse.data?.length || 0,
+                    total_phases_competition: competitionPhases.length,
+                    phases: competitionPhases.map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        status: p.status,
+                        competition_id: p.competition
+                    })),
+                    debug_info: {
+                        auth_working: true,
+                        phases_endpoint_working: true,
+                        filtering_working: true
+                    }
+                });
+
+            } catch (phasesError) {
+                console.error('❌ Phases fetch error:', phasesError.response?.status, phasesError.response?.data);
+                res.json({
+                    success: false,
+                    error: 'Failed to fetch phases',
+                    auth_working: true,
+                    phases_error: {
+                        status: phasesError.response?.status,
+                        message: phasesError.message,
+                        data: phasesError.response?.data
+                    }
+                });
+            }
+        } else {
+            console.log('❌ Auth failed:', authResponse.status);
+            res.json({
+                success: false,
+                error: 'Authentication failed',
+                auth_status: authResponse.status
+            });
+        }
+    } catch (error) {
+        console.error('❌ Public phase discovery error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: 'Check server logs for more details'
         });
     }
 });

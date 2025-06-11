@@ -566,13 +566,46 @@ async function submitFiles() {
         if (response.ok && data.success) {
             alert(`Submission successful! Your algorithm "${algorithmName}" has been submitted for evaluation.`);
             
+            // Add the new submission to our local storage
+            const newSubmission = {
+                id: data.submissionId,
+                algorithmName: algorithmName,
+                teamName: currentTeam,
+                status: data.status,
+                timestamp: new Date().toISOString(),
+                date: new Date().toISOString(), // Add date field for compatibility
+                platform: data.platform,
+                scores: data.scores,
+                metrics: {
+                    CR: data.scores?.CR || data.details?.CR,
+                    PRD: data.scores?.PRD || data.details?.PRD,
+                    Score: data.scores?.Score || data.details?.Score
+                },
+                score: data.scores?.Score || data.details?.Score || 0
+            };
+            
+            // Add to submissions array and save to localStorage
+            submissions.unshift(newSubmission); // Add to beginning of array
+            localStorage.setItem('submissions', JSON.stringify(submissions));
+            
+            // Update high score if this is better
+            const currentScore = newSubmission.score;
+            if (currentScore > parseFloat(highScore)) {
+                highScore = currentScore.toFixed(2);
+                localStorage.setItem('highScore', highScore);
+            }
+            
             // Reset form
             document.getElementById('submissionForm').reset();
             document.getElementById('paperUploadSection').style.display = 'none';
             document.getElementById('paperDOISection').style.display = 'none';
             
-            // Update submissions list
+            // Update all displays
             updateSubmissionsDisplay();
+            updateTeamDisplay();
+            updatePersonalSubmissionHistory();
+            
+            console.log('✅ Submission added to local storage:', newSubmission);
         } else {
             throw new Error(data.message || 'Submission failed');
         }
@@ -1379,17 +1412,29 @@ async function updatePersonalSubmissionHistory() {
         const submissionHistory = document.getElementById('submissionHistory');
         const noSubmissions = document.getElementById('noSubmissions');
         
+        // Check if elements exist before accessing their properties
+        if (!submissionHistory) {
+            console.warn('submissionHistory element not found');
+            return;
+        }
+        
         // Get user submissions (from localStorage for now)
         const userSubmissions = submissions.filter(sub => sub.teamName === currentTeam);
         
         if (userSubmissions.length === 0) {
-            noSubmissions.style.display = 'block';
-            submissionHistory.innerHTML = '';
-            submissionHistory.appendChild(noSubmissions);
+            if (noSubmissions) {
+                noSubmissions.style.display = 'block';
+                submissionHistory.innerHTML = '';
+                submissionHistory.appendChild(noSubmissions);
+            } else {
+                submissionHistory.innerHTML = '<p>No submissions yet.</p>';
+            }
             return;
         }
         
-        noSubmissions.style.display = 'none';
+        if (noSubmissions) {
+            noSubmissions.style.display = 'none';
+        }
         
         // Sort submissions by date (newest first)
         userSubmissions.sort((a, b) => new Date(b.date) - new Date(a.date));
