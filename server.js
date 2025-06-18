@@ -26,10 +26,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// 静态文件服务（在API路由之后）
-app.use(express.static(__dirname));
-
-// CORS headers for development
+// CORS headers for development (moved before API routes)
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -42,6 +39,9 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+// 静态文件服务 - MOVED HERE to be after all API routes
+app.use(express.static(__dirname));
 
 // Standardized JWT verification function
 function authenticateToken(req, res, next) {
@@ -533,72 +533,112 @@ app.post('/api/submit-to-codabench', authenticateToken, uploadFlexible.fields([
             console.log('🔗 Paper DOI provided:', paperDOI);
         }
 
-        // Try Codabench submission first
+        // Try Codabench submission using the TWO-STEP process
         let codabenchSuccess = false;
         let codabenchResult = null;
         let codabenchError = null;
 
         try {
-            console.log('🔄 Attempting CodaBench submission...');
+            console.log('🔄 Attempting CodaBench submission (2-step process)...');
             
-            // First get auth token using CORRECT endpoint
+            // Step 1: Get auth token
+            console.log('🔐 Step 1: Getting authentication token...');
             const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
                 username: process.env.CODABENCH_USERNAME,
                 password: process.env.CODABENCH_PASSWORD
             }, {
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000
             });
 
-            if (authResponse.status === 200) {
-                const authData = authResponse.data;
-                console.log('✅ Codabench auth successful');
-
-                // Try to submit using CORRECT endpoint
-                const submissionData = new FormData();
-                submissionData.append('method_name', algorithmName);
-                submissionData.append('method_description', `Team: ${teamName}, Algorithm: ${algorithmName}, Paper: ${paperTitle}`);
-                submissionData.append('project_url', '');
-                submissionData.append('publication_url', paperType === 'doi' ? paperDOI : '');
-                submissionData.append('team_name', teamName);
-                submissionData.append('data_file', fs.createReadStream(filePath));
-                
-                // Add competition/phase information
-                submissionData.append('competition', process.env.CODABENCH_COMPETITION_ID);
-
-                console.log('📋 Submission data being sent to CodaBench:');
-                console.log('- method_name:', algorithmName);
-                console.log('- team_name:', teamName);
-                console.log('- competition:', process.env.CODABENCH_COMPETITION_ID);
-                console.log('- file_path:', filePath);
-                console.log('- file_exists:', fs.existsSync(filePath));
-                console.log('- publication_url:', paperType === 'doi' ? paperDOI : '');
-
-                const submitResponse = await axios.post(
-                    `${process.env.CODABENCH_API_URL}/submissions/`,
-                    submissionData,
-                    {
-                        headers: {
-                            'Authorization': `Token ${authData.token}`,
-                            ...submissionData.getHeaders()
-                        },
-                        timeout: 60000 // 60 second timeout
-                    }
-                );
-
-                if (submitResponse.status === 200 || submitResponse.status === 201) {
-                    codabenchResult = submitResponse.data;
-                    codabenchSuccess = true;
-                    console.log('✅ Codabench submission successful:', codabenchResult.id);
-                } else {
-                    console.log('⚠️ Codabench submission failed:', submitResponse.status, submitResponse.data);
-                    codabenchError = { message: 'CodaBench submission failed', status: submitResponse.status, data: submitResponse.data };
-                }
-            } else {
-                console.log('⚠️ Codabench auth failed:', authResponse.status, authResponse.data);
-                codabenchError = { message: 'Authentication failed', status: authResponse.status };
+            if (authResponse.status !== 200 || !authResponse.data?.token) {
+                throw new Error(`Authentication failed: ${authResponse.status} - ${JSON.stringify(authResponse.data)}`);
             }
+
+            const authToken = authResponse.data.token;
+            console.log('✅ Authentication successful');
+
+            // Step 2: Upload file to datasets/ endpoint to get key
+            console.log('📤 Step 2: Uploading file to datasets endpoint...');
+            
+            const fileStats = fs.statSync(filePath);
+            const datasetFormData = new FormData();
+            
+            // CodaBench datasets API parameters as specified in their response
+            datasetFormData.append('type', 'submission');
+            datasetFormData.append('competition', process.env.CODABENCH_COMPETITION_ID);
+            datasetFormData.append('request_sassy_file_name', algorithmName);
+            datasetFormData.append('file_name', algorithmName);
+            datasetFormData.append('file_size', fileStats.size.toString());
+            datasetFormData.append('data_file', fs.createReadStream(filePath));
+
+            console.log('📋 Dataset upload data:');
+            console.log('- type: submission');
+            console.log('- competition:', process.env.CODABENCH_COMPETITION_ID);
+            console.log('- request_sassy_file_name:', algorithmName);
+            console.log('- file_name:', algorithmName);
+            console.log('- file_size:', fileStats.size);
+            console.log('- data_file: [FileStream]');
+
+            const datasetResponse = await axios.post(
+                `${process.env.CODABENCH_API_URL}/datasets/`,
+                datasetFormData,
+                {
+                    headers: {
+                        'Authorization': `Token ${authToken}`,
+                        ...datasetFormData.getHeaders()
+                    },
+                    timeout: 60000
+                }
+            );
+
+            if (datasetResponse.status !== 200 && datasetResponse.status !== 201) {
+                throw new Error(`Dataset upload failed: ${datasetResponse.status} - ${JSON.stringify(datasetResponse.data)}`);
+            }
+
+            const datasetKey = datasetResponse.data.key;
+            if (!datasetKey) {
+                throw new Error(`No key received from datasets API: ${JSON.stringify(datasetResponse.data)}`);
+            }
+
+            console.log('✅ File uploaded to datasets, received key:', datasetKey);
+
+            // Step 3: Create submission using the key
+            console.log('🏁 Step 3: Creating submission with key...');
+            
+            const submissionData = new FormData();
+            submissionData.append('data', datasetKey);
+            submissionData.append('phase', '9800');
+            submissionData.append('filename', `${algorithmName}.zip`);
+
+            console.log('📋 Submission data:');
+            console.log('- data (key):', datasetKey);
+            console.log('- phase: 9800');
+            console.log('- filename:', `${algorithmName}.zip`);
+
+            const submissionResponse = await axios.post(
+                `${process.env.CODABENCH_API_URL}/submissions/`,
+                submissionData,
+                {
+                    headers: {
+                        'Authorization': `Token ${authToken}`,
+                        ...submissionData.getHeaders()
+                    },
+                    timeout: 60000
+                }
+            );
+
+            if (submissionResponse.status === 200 || submissionResponse.status === 201) {
+                codabenchResult = submissionResponse.data;
+                codabenchSuccess = true;
+                console.log('✅ CodaBench submission successful:', codabenchResult.id || 'No ID in response');
+                console.log('🎉 Two-step submission process completed successfully!');
+            } else {
+                throw new Error(`Submission creation failed: ${submissionResponse.status} - ${JSON.stringify(submissionResponse.data)}`);
+            }
+
         } catch (networkError) {
-            console.log('⚠️ Codabench network error:', networkError.message);
+            console.log('⚠️ CodaBench submission error:', networkError.message);
             console.log('⚠️ Error details:', {
                 status: networkError.response?.status,
                 statusText: networkError.response?.statusText,
@@ -606,74 +646,54 @@ app.post('/api/submit-to-codabench', authenticateToken, uploadFlexible.fields([
                 url: networkError.config?.url
             });
             
-            // Special handling for 400 errors - show the detailed validation error
-            if (networkError.response?.status === 400) {
-                console.log('❌ CodaBench 400 Error Details:');
-                console.log('📋 Request URL:', networkError.config?.url);
-                console.log('📋 Response Data:', JSON.stringify(networkError.response?.data, null, 2));
-                console.log('📋 Request Headers:', networkError.config?.headers);
+            // Log detailed error information
+            if (networkError.response?.status) {
+                console.log('❌ CodaBench API Error:');
+                console.log('📋 Status:', networkError.response.status);
+                console.log('📋 URL:', networkError.config?.url);
+                console.log('📋 Response:', JSON.stringify(networkError.response.data, null, 2));
                 
-                // Log what we were trying to send
-                console.log('📤 Our submission data:');
-                console.log('- Algorithm Name:', algorithmName);
-                console.log('- Team Name:', teamName);
-                console.log('- Competition ID:', process.env.CODABENCH_COMPETITION_ID);
-                console.log('- Paper Title:', paperTitle);
-                console.log('- File exists:', fs.existsSync(filePath));
-                console.log('- File size:', fs.existsSync(filePath) ? fs.statSync(filePath).size : 'N/A');
+                // Determine which step failed
+                if (networkError.config?.url?.includes('/datasets/')) {
+                    console.log('💥 Failed at Step 2: Dataset upload');
+                } else if (networkError.config?.url?.includes('/submissions/')) {
+                    console.log('💥 Failed at Step 3: Submission creation');
+                } else {
+                    console.log('💥 Failed at Step 1: Authentication');
+                }
             }
             
             codabenchError = { 
-                message: 'Network error connecting to CodaBench', 
+                message: 'Error in CodaBench two-step submission process', 
                 error: networkError.message,
                 status: networkError.response?.status,
                 details: networkError.response?.data,
-                url: networkError.config?.url
+                url: networkError.config?.url,
+                step: networkError.config?.url?.includes('/datasets/') ? 'dataset_upload' : 
+                      networkError.config?.url?.includes('/submissions/') ? 'submission_creation' : 'authentication'
             };
         }
 
-        // Run local scoring as backup or primary method
-        console.log('🔬 Starting local scoring...');
-        let localScoring;
-        try {
-            localScoring = await runLocalScoring(filePath, teamName, algorithmName);
-            console.log('✅ Local scoring completed successfully');
-        } catch (scoringError) {
-            console.error('❌ Local scoring failed:', scoringError);
-            return res.status(500).json({
-                success: false,
-                error: 'Local scoring failed',
-                message: scoringError.message,
-                status: 'error'
-            });
-        }
-
-        // Prepare response based on results
+        // ONLY use CodaBench - NO local fallback
         if (codabenchSuccess) {
             // Codabench succeeded
             res.json({
                 success: true,
                 submissionId: codabenchResult.id,
                 status: 'submitted',
-                message: 'Submission successful to Codabench',
-                scores: localScoring.details, // Include local scores for immediate feedback
-                platform: 'codabench'
+                message: 'Submission successful to CodaBench using two-step process',
+                platform: 'codabench',
+                details: codabenchResult
             });
         } else {
-            // Use local scoring with CodaBench error details
-            res.json({
-                success: true,
-                submissionId: `local-${Date.now()}`,
-                status: 'scored-locally',
-                message: 'Submission scored with local ECG evaluation system',
-                scores: localScoring.details,
-                details: localScoring.details,
-                platform: 'local',
-                codabenchInfo: {
-                    attempted: true,
-                    success: false,
-                    error: codabenchError
-                }
+            // CodaBench failed - return error (NO local fallback)
+            console.error('❌ CodaBench two-step submission failed');
+            res.status(500).json({
+                success: false,
+                error: 'CODABENCH_SUBMISSION_FAILED',
+                message: 'Failed to submit to CodaBench using the required two-step process',
+                platform: 'codabench',
+                errorDetails: codabenchError
             });
         }
 
@@ -1771,6 +1791,231 @@ app.get('/api/public-debug-phases', async (req, res) => {
     }
 });
 
+// Debug endpoint specifically for CodaBench support - capture complete submission details
+app.post('/api/debug-submission-request', authenticateToken, uploadFlexible.fields([
+    { name: 'file', maxCount: 1 }
+]), async (req, res) => {
+    console.log('🔍 DEBUG: Capturing complete submission request details for CodaBench support...');
+    
+    try {
+        const { teamName, algorithmName } = req.body;
+        const algorithmFile = req.files?.file?.[0];
+        
+        // Check environment variables first
+        if (!process.env.CODABENCH_API_URL || !process.env.CODABENCH_USERNAME || !process.env.CODABENCH_PASSWORD || !process.env.CODABENCH_COMPETITION_ID) {
+            return res.status(500).json({
+                success: false,
+                error: 'MISSING_CONFIG',
+                message: 'CodaBench configuration missing',
+                missing: {
+                    api_url: !process.env.CODABENCH_API_URL,
+                    username: !process.env.CODABENCH_USERNAME,
+                    password: !process.env.CODABENCH_PASSWORD,
+                    competition_id: !process.env.CODABENCH_COMPETITION_ID
+                }
+            });
+        }
+        
+        if (!algorithmFile) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please upload a test file to capture request details'
+            });
+        }
+
+        let authData = null;
+        let datasetKey = null;
+        let errorDetails = null;
+        let datasetResponse = null;
+        let submissionResponse = null;
+
+        try {
+            // Step 1: Get authentication token
+            console.log('🔐 Step 1: Getting authentication token...');
+            const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+                username: process.env.CODABENCH_USERNAME,
+                password: process.env.CODABENCH_PASSWORD
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 15000
+            });
+
+            if (authResponse.status === 200 && authResponse.data?.token) {
+                authData = authResponse.data;
+                console.log('✅ Authentication successful');
+            } else {
+                throw new Error(`Auth failed: ${authResponse.status} - ${JSON.stringify(authResponse.data)}`);
+            }
+
+            // Step 2: Upload file to datasets/ endpoint
+            console.log('📤 Step 2: Uploading file to datasets endpoint...');
+            
+            const fileStats = fs.statSync(algorithmFile.path);
+            const datasetFormData = new FormData();
+            
+            datasetFormData.append('type', 'submission');
+            datasetFormData.append('competition', process.env.CODABENCH_COMPETITION_ID);
+            datasetFormData.append('request_sassy_file_name', algorithmName || 'Debug Test Algorithm');
+            datasetFormData.append('file_name', algorithmName || 'Debug Test Algorithm');
+            datasetFormData.append('file_size', fileStats.size.toString());
+            datasetFormData.append('data_file', fs.createReadStream(algorithmFile.path));
+
+            console.log('📋 Dataset upload parameters:');
+            console.log('- type: submission');
+            console.log('- competition:', process.env.CODABENCH_COMPETITION_ID);
+            console.log('- request_sassy_file_name:', algorithmName || 'Debug Test Algorithm');
+            console.log('- file_name:', algorithmName || 'Debug Test Algorithm');
+            console.log('- file_size:', fileStats.size);
+
+            datasetResponse = await axios.post(
+                `${process.env.CODABENCH_API_URL}/datasets/`,
+                datasetFormData,
+                {
+                    headers: {
+                        'Authorization': `Token ${authData.token}`,
+                        ...datasetFormData.getHeaders()
+                    },
+                    timeout: 60000,
+                    validateStatus: () => true // Don't throw on error responses
+                }
+            );
+
+            console.log('📋 Dataset response status:', datasetResponse.status);
+
+            if (datasetResponse.status === 200 || datasetResponse.status === 201) {
+                datasetKey = datasetResponse.data.key;
+                console.log('✅ File uploaded to datasets, received key:', datasetKey);
+
+                // Step 3: Create submission using the key
+                console.log('🏁 Step 3: Creating submission with key...');
+                
+                const submissionData = new FormData();
+                submissionData.append('data', datasetKey);
+                submissionData.append('phase', '9800');
+                submissionData.append('filename', `${algorithmName || 'Debug_Test'}.zip`);
+
+                console.log('📋 Submission parameters:');
+                console.log('- data (key):', datasetKey);
+                console.log('- phase: 9800');
+                console.log('- filename:', `${algorithmName || 'Debug_Test'}.zip`);
+
+                submissionResponse = await axios.post(
+                    `${process.env.CODABENCH_API_URL}/submissions/`,
+                    submissionData,
+                    {
+                        headers: {
+                            'Authorization': `Token ${authData.token}`,
+                            ...submissionData.getHeaders()
+                        },
+                        timeout: 60000,
+                        validateStatus: () => true // Don't throw on error responses
+                    }
+                );
+
+                console.log('📋 Submission response status:', submissionResponse.status);
+            } else {
+                console.log('❌ Dataset upload failed:', datasetResponse.status, datasetResponse.data);
+            }
+
+        } catch (requestError) {
+            console.error('❌ Request error during debug:', requestError.message);
+            errorDetails = {
+                type: 'Network Error',
+                message: requestError.message,
+                status: requestError.response?.status,
+                data: requestError.response?.data,
+                url: requestError.config?.url
+            };
+        }
+
+        // Prepare complete debug details
+        const completeDetails = {
+            timestamp: new Date().toISOString(),
+            twoStepProcess: true,
+            step1_authentication: {
+                method: 'POST',
+                url: `${process.env.CODABENCH_API_URL}/api-token-auth/`,
+                status: authData ? 'SUCCESS' : 'FAILED',
+                hasToken: !!authData?.token
+            },
+            step2_dataset_upload: {
+                method: 'POST',
+                url: `${process.env.CODABENCH_API_URL}/datasets/`,
+                status: datasetResponse?.status || 'NOT_ATTEMPTED',
+                parameters: {
+                    type: 'submission',
+                    competition: process.env.CODABENCH_COMPETITION_ID,
+                    request_sassy_file_name: algorithmName || 'Debug Test Algorithm',
+                    file_name: algorithmName || 'Debug Test Algorithm',
+                    file_size: fs.statSync(algorithmFile.path).size,
+                    data_file: `[File: ${algorithmFile.originalname}]`
+                },
+                response: datasetResponse?.data || 'No response',
+                receivedKey: datasetKey || 'No key received'
+            },
+            step3_submission_creation: {
+                method: 'POST',
+                url: `${process.env.CODABENCH_API_URL}/submissions/`,
+                status: submissionResponse?.status || 'NOT_ATTEMPTED',
+                parameters: datasetKey ? {
+                    data: datasetKey,
+                    phase: '9800',
+                    filename: `${algorithmName || 'Debug_Test'}.zip`
+                } : 'Cannot proceed without key from step 2',
+                response: submissionResponse?.data || 'No response'
+            },
+            error: errorDetails,
+            summary: {
+                process: 'Two-step CodaBench submission',
+                step1_auth: !!authData,
+                step2_dataset_upload: !!(datasetResponse?.status === 200 || datasetResponse?.status === 201),
+                step3_submission: !!(submissionResponse?.status === 200 || submissionResponse?.status === 201),
+                final_status: submissionResponse?.status === 200 || submissionResponse?.status === 201 ? 'SUCCESS' : 
+                            datasetResponse?.status !== 200 && datasetResponse?.status !== 201 ? 'FAILED_AT_DATASET_UPLOAD' :
+                            'FAILED_AT_SUBMISSION_CREATION',
+                error_step: errorDetails?.url?.includes('/datasets/') ? 'dataset_upload' :
+                           errorDetails?.url?.includes('/submissions/') ? 'submission_creation' :
+                           errorDetails ? 'authentication' : 'none'
+            },
+            environment: {
+                competition_id: process.env.CODABENCH_COMPETITION_ID,
+                api_url: process.env.CODABENCH_API_URL,
+                username: process.env.CODABENCH_USERNAME,
+                node_version: process.version,
+                axios_version: require('axios/package.json').version
+            }
+        };
+
+        console.log('✅ Complete two-step debugging details captured');
+
+        // Clean up uploaded file
+        try {
+            if (fs.existsSync(algorithmFile.path)) {
+                fs.unlinkSync(algorithmFile.path);
+            }
+        } catch (cleanupError) {
+            console.warn('⚠️ Could not delete uploaded file:', cleanupError.message);
+        }
+
+        res.json({
+            success: true,
+            message: 'Complete two-step submission request details captured',
+            completeDetails,
+            supportMessage: 'This shows the new two-step process as specified by CodaBench team'
+        });
+
+    } catch (error) {
+        console.error('❌ Debug capture error:', error);
+        
+        res.status(500).json({
+            success: false,
+            error: error.name || 'UNKNOWN_ERROR',
+            message: error.message || 'Failed to capture debug details',
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
 // 启动服务器
 const PORT = parseInt(process.env.PORT) || 3000;
 
@@ -1953,3 +2198,176 @@ async function runRealScoring(filePath, teamName, algorithmName) {
         }
     });
 }
+
+// Simple test endpoint to verify authentication and server are working
+app.get('/api/debug-test', authenticateToken, (req, res) => {
+    console.log('🧪 Simple debug test requested');
+    res.json({
+        success: true,
+        message: 'Authentication and server are working correctly',
+        user: req.user,
+        timestamp: new Date().toISOString(),
+        environment: {
+            api_url_set: !!process.env.CODABENCH_API_URL,
+            username_set: !!process.env.CODABENCH_USERNAME,
+            password_set: !!process.env.CODABENCH_PASSWORD,
+            competition_id_set: !!process.env.CODABENCH_COMPETITION_ID
+        }
+    });
+});
+
+// Static file serving - placed AFTER all API routes to prevent routing conflicts
+app.use(express.static(__dirname));
+
+// Test endpoint to verify two-step submission process
+app.get('/api/test-two-step-submission', authenticateToken, async (req, res) => {
+    console.log('🧪 Testing CodaBench two-step submission process...');
+    
+    try {
+        let results = {
+            step1_auth: { status: 'pending' },
+            step2_datasets_endpoint: { status: 'pending' },
+            step3_submissions_endpoint: { status: 'pending' },
+            overall: { status: 'pending' }
+        };
+
+        // Step 1: Test authentication
+        try {
+            console.log('🔐 Step 1: Testing authentication...');
+            const authResponse = await axios.post(`${process.env.CODABENCH_API_URL}/api-token-auth/`, {
+                username: process.env.CODABENCH_USERNAME,
+                password: process.env.CODABENCH_PASSWORD
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 15000
+            });
+
+            if (authResponse.status === 200 && authResponse.data?.token) {
+                results.step1_auth = {
+                    status: 'success',
+                    message: 'Authentication successful',
+                    hasToken: true
+                };
+                console.log('✅ Step 1 passed: Authentication successful');
+
+                const authToken = authResponse.data.token;
+
+                // Step 2: Test datasets endpoint accessibility
+                try {
+                    console.log('🔍 Step 2: Testing datasets endpoint...');
+                    const datasetsTestResponse = await axios.get(
+                        `${process.env.CODABENCH_API_URL}/datasets/`,
+                        {
+                            headers: { 'Authorization': `Token ${authToken}` },
+                            timeout: 15000
+                        }
+                    );
+
+                    results.step2_datasets_endpoint = {
+                        status: 'success',
+                        message: 'Datasets endpoint accessible',
+                        httpStatus: datasetsTestResponse.status,
+                        canAccess: true
+                    };
+                    console.log('✅ Step 2 passed: Datasets endpoint accessible');
+
+                } catch (datasetsError) {
+                    results.step2_datasets_endpoint = {
+                        status: 'error',
+                        message: 'Cannot access datasets endpoint',
+                        httpStatus: datasetsError.response?.status,
+                        error: datasetsError.message,
+                        details: datasetsError.response?.data
+                    };
+                    console.log('❌ Step 2 failed:', datasetsError.message);
+                }
+
+                // Step 3: Test submissions endpoint accessibility
+                try {
+                    console.log('🔍 Step 3: Testing submissions endpoint...');
+                    const submissionsTestResponse = await axios.get(
+                        `${process.env.CODABENCH_API_URL}/submissions/`,
+                        {
+                            headers: { 'Authorization': `Token ${authToken}` },
+                            timeout: 15000
+                        }
+                    );
+
+                    results.step3_submissions_endpoint = {
+                        status: 'success',
+                        message: 'Submissions endpoint accessible',
+                        httpStatus: submissionsTestResponse.status,
+                        canAccess: true
+                    };
+                    console.log('✅ Step 3 passed: Submissions endpoint accessible');
+
+                } catch (submissionsError) {
+                    results.step3_submissions_endpoint = {
+                        status: 'error',
+                        message: 'Cannot access submissions endpoint',
+                        httpStatus: submissionsError.response?.status,
+                        error: submissionsError.message,
+                        details: submissionsError.response?.data
+                    };
+                    console.log('❌ Step 3 failed:', submissionsError.message);
+                }
+
+            } else {
+                results.step1_auth = {
+                    status: 'error',
+                    message: 'Authentication failed - no token received',
+                    httpStatus: authResponse.status,
+                    response: authResponse.data
+                };
+                console.log('❌ Step 1 failed: No token received');
+            }
+
+        } catch (authError) {
+            results.step1_auth = {
+                status: 'error',
+                message: 'Authentication request failed',
+                httpStatus: authError.response?.status,
+                error: authError.message,
+                details: authError.response?.data
+            };
+            console.log('❌ Step 1 failed:', authError.message);
+        }
+
+        // Determine overall status
+        const allStepsSuccessful = results.step1_auth.status === 'success' &&
+                                 results.step2_datasets_endpoint.status === 'success' &&
+                                 results.step3_submissions_endpoint.status === 'success';
+
+        results.overall = {
+            status: allStepsSuccessful ? 'ready' : 'issues_detected',
+            message: allStepsSuccessful ? 
+                'Two-step submission process ready' : 
+                'Issues detected with two-step submission process',
+            readyForSubmission: allStepsSuccessful,
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('🧪 Two-step test completed:', results.overall.status);
+
+        res.json({
+            success: true,
+            message: 'Two-step submission process test completed',
+            results,
+            recommendations: allStepsSuccessful ? 
+                ['Ready to submit files using two-step process'] :
+                [
+                    results.step1_auth.status !== 'success' ? 'Check CodaBench credentials' : null,
+                    results.step2_datasets_endpoint.status !== 'success' ? 'Verify datasets API access' : null,
+                    results.step3_submissions_endpoint.status !== 'success' ? 'Verify submissions API access' : null
+                ].filter(Boolean)
+        });
+
+    } catch (error) {
+        console.error('❌ Two-step test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to test two-step submission process'
+        });
+    }
+});

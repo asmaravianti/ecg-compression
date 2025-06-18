@@ -1,0 +1,14 @@
+[
+  {
+    "teamName": "Debug Divas",
+    "email": "debugdivas@gmail.com",
+    "password": "$2b$10$V07YRmdZUQ8iUE50cxpXg.gUFtPy3Oi.wLJKu2BU3L8zwU6UzYqym",
+    "registeredAt": "2025-06-12T20:39:43.586Z"
+  },
+  {
+    "teamName": "Example",
+    "email": "test@example.com",
+    "password": "$2b$10$kcNXaoNfq/7GmTisi9VX8.kYEthm0oLa9mFBdzWvbjenP7ylnD22.",
+    "registeredAt": "2025-06-18T00:24:49.641Z"
+  }
+]

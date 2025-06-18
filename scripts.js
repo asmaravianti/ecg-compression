@@ -1358,15 +1358,25 @@ async function updateLeaderboardPreview() {
                 if (topResults.length === 0) {
                     showDefaultLeaderboardPreview();
                 } else {
-                    leaderboardPreview.innerHTML = topResults.map((result, index) => `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${result.participant_name}</td>
-                            <td>${result.scores?.CR?.toFixed(1) || 'N/A'}</td>
-                            <td>${result.scores?.PRD?.toFixed(4) || 'N/A'}</td>
-                            <td>${result.scores?.Score?.toFixed(1) || 'N/A'}</td>
-                        </tr>
-                    `).join('');
+                    leaderboardPreview.innerHTML = topResults.map((result, index) => {
+                        // Safely handle scores that might not be numbers
+                        const crScore = (typeof result.scores?.CR === 'number') ? result.scores.CR.toFixed(1) : 
+                                       (result.scores?.CR ? parseFloat(result.scores.CR).toFixed(1) : 'N/A');
+                        const prdScore = (typeof result.scores?.PRD === 'number') ? result.scores.PRD.toFixed(4) : 
+                                        (result.scores?.PRD ? parseFloat(result.scores.PRD).toFixed(4) : 'N/A');
+                        const totalScore = (typeof result.scores?.Score === 'number') ? result.scores.Score.toFixed(1) : 
+                                          (result.scores?.Score ? parseFloat(result.scores.Score).toFixed(1) : 'N/A');
+                        
+                        return `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${result.participant_name || 'Unknown'}</td>
+                                <td>${crScore}</td>
+                                <td>${prdScore}</td>
+                                <td>${totalScore}</td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
             }
         } else {

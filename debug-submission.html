@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodaBench Submission Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .copy-button {
+            background: #28a745;
+            margin-left: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .copy-button:hover {
+            background: #218838;
+        }
+        .token-display {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+        .login-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-secondary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div class="container" id="loginSection">
+        <div class="header">
+            <h2>🔐 Login to Get JWT Token</h2>
+            <p>Login first to automatically get your JWT token for debugging</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email or Team Name:</label>
+                <input type="text" id="loginEmail" name="loginEmail" placeholder="Enter your email or team name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" name="loginPassword" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" id="loginBtn">🔓 Login & Get Token</button>
+        </form>
+
+        <div id="loginResult" style="display: none;"></div>
+    </div>
+
+    <!-- Debug Section (hidden until logged in) -->
+    <div class="container hidden" id="debugSection">
+        <div class="header">
+            <h1>🔍 CodaBench Submission Debug Tool</h1>
+            <p>This tool captures complete submission request details to send to CodaBench support</p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Purpose:</strong> This tool is designed to capture the exact details of our POST /api/submissions/ request that's failing with 400 Bad Request. The captured data will be sent to CodaBench support for debugging.
+        </div>
+
+        <!-- Token Display -->
+        <div class="form-group">
+            <label>Your JWT Token:</label>
+            <div class="token-display" id="tokenDisplay">Token will appear here after login</div>
+            <button type="button" id="copyTokenBtn" class="copy-button">📋 Copy Token</button>
+        </div>
+
+        <form id="debugForm">
+            <div class="form-group">
+                <label for="teamName">Team Name:</label>
+                <input type="text" id="teamName" name="teamName" value="Debug Team" required>
+            </div>
+
+            <div class="form-group">
+                <label for="algorithmName">Algorithm Name:</label>
+                <input type="text" id="algorithmName" name="algorithmName" value="Debug Test Algorithm" required>
+            </div>
+
+            <div class="form-group">
+                <label for="file">Test File (ZIP):</label>
+                <input type="file" id="file" name="file" accept=".zip" required>
+                <small>Upload any small ZIP file for testing (it will be deleted after capturing the request)</small>
+            </div>
+
+            <!-- Test Two-Step Process Button -->
+            <div class="form-group">
+                <button type="button" id="testTwoStepBtn" class="btn-secondary">🧪 Test Two-Step Process</button>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Test if the new two-step submission process is working before uploading files
+                </small>
+            </div>
+
+            <button type="submit" id="submitBtn">🔍 Capture Request Details</button>
+            <button type="button" id="copyBtn" class="copy-button" style="display: none;">📋 Copy Details</button>
+            <button type="button" id="testConfigBtn" class="copy-button" style="background: #ffc107; color: #212529;">🧪 Test Config</button>
+            <button type="button" id="simpleTestBtn" class="copy-button" style="background: #17a2b8; color: white;">🔧 Simple Test</button>
+        </form>
+
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        
+        // Login form handling
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginResult = document.getElementById('loginResult');
+        const loginSection = document.getElementById('loginSection');
+        const debugSection = document.getElementById('debugSection');
+        const tokenDisplay = document.getElementById('tokenDisplay');
+        const copyTokenBtn = document.getElementById('copyTokenBtn');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = '🔄 Logging in...';
+            loginResult.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.token) {
+                    currentToken = data.token;
+                    tokenDisplay.textContent = data.token;
+                    
+                    // Show success and reveal debug section
+                    showLoginResult(`✅ Login successful! Welcome, ${data.teamName}`, 'success');
+                    setTimeout(() => {
+                        loginSection.classList.add('hidden');
+                        debugSection.classList.remove('hidden');
+                    }, 1000);
+                } else {
+                    showLoginResult(`❌ Login failed: ${data.message}`, 'error');
+                }
+
+            } catch (error) {
+                showLoginResult(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '🔓 Login & Get Token';
+            }
+        });
+
+        copyTokenBtn.addEventListener('click', () => {
+            if (currentToken) {
+                navigator.clipboard.writeText(currentToken).then(() => {
+                    copyTokenBtn.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                        copyTokenBtn.textContent = '📋 Copy Token';
+                    }, 2000);
+                });
+            }
+        });
+
+        function showLoginResult(message, type) {
+            loginResult.textContent = message;
+            loginResult.className = `result ${type}`;
+            loginResult.style.display = 'block';
+        }
+
+        // Debug form handling
+        const form = document.getElementById('debugForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const result = document.getElementById('result');
+        let capturedDetails = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentToken) {
+                showResult('❌ Please login first to get your JWT token', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🔄 Capturing...';
+            result.style.display = 'none';
+            copyBtn.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('teamName', document.getElementById('teamName').value);
+                formData.append('algorithmName', document.getElementById('algorithmName').value);
+                formData.append('file', document.getElementById('file').files[0]);
+
+                const response = await fetch('/api/debug-submission-request', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    capturedDetails = data.completeDetails;
+                    showResult('Details captured successfully! Use the copy button to get the formatted data for CodaBench support.', 'success');
+                    copyBtn.style.display = 'inline-block';
+                } else {
+                    showResult(`Error: ${data.message}`, 'error');
+                }
+
+            } catch (error) {
+                showResult(`Network error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🔍 Capture Request Details';
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (capturedDetails) {
+                const formattedDetails = formatForSupport(capturedDetails);
+                navigator.clipboard.writeText(formattedDetails).then(() => {
+                    copyBtn.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = '📋 Copy Details';
+                    }, 2000);
+                });
+                showResult(formattedDetails, 'success');
+            }
+        });
+
+        function showResult(message, type) {
+            result.textContent = message;
+            result.className = `result ${type}`;
+            result.style.display = 'block';
+        }
+
+        function formatForSupport(details) {
+            return `Dear CodaBench Support Team,
+
+Here are the complete details of our POST /api/submissions/ request that's returning 400 Bad Request:
+
+=== REQUEST DETAILS ===
+Method: ${details.request.method}
+URL: ${details.request.url}
+Timestamp: ${details.timestamp}
+
+=== HEADERS ===
+${JSON.stringify(details.request.headers, null, 2)}
+
+=== FORM DATA PARAMETERS ===
+${JSON.stringify(details.request.formData, null, 2)}
+
+=== ENVIRONMENT ===
+${JSON.stringify(details.request.environment, null, 2)}
+
+=== RESPONSE ===
+Status: ${details.response?.status || 'N/A'}
+Status Text: ${details.response?.statusText || 'N/A'}
+Response Data: ${JSON.stringify(details.response?.data, null, 2)}
+
+=== ERROR DETAILS ===
+Error Status: ${details.error?.status || 'N/A'}
+Error Message: ${details.error?.data?.detail || details.error?.message || 'N/A'}
+Full Error Data: ${JSON.stringify(details.error?.data, null, 2)}
+
+=== SUMMARY ===
+- Authentication: ${details.summary.auth_working ? 'WORKING' : 'FAILED'}
+- Competition ID: ${details.summary.competition_id}
+- Phase ID: ${details.summary.phase_id}
+- Error Status: ${details.summary.error_status}
+- Error Message: ${details.summary.error_message}
+
+Please let us know what validation is failing so we can fix our request format.
+
+Account Details:
+- Username: jessie959, asmaragracia
+- Competition: 5899
+- Platform: Node.js backend with axios
+
+Thank you for your assistance.
+
+Best regards,
+Ihsan`;
+        }
+
+        // Test configuration button
+        const testConfigBtn = document.getElementById('testConfigBtn');
+        testConfigBtn.addEventListener('click', async () => {
+            testConfigBtn.disabled = true;
+            testConfigBtn.textContent = '🔄 Testing...';
+
+            try {
+                const response = await fetch('/api/config-check');
+                const data = await response.json();
+
+                if (data.allConfigured) {
+                    showResult('✅ Configuration is complete! All environment variables are set.', 'success');
+                } else {
+                    showResult(`⚠️ Configuration incomplete:\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Could not check configuration: ${error.message}`, 'error');
+            } finally {
+                testConfigBtn.disabled = false;
+                testConfigBtn.textContent = '🧪 Test Config';
+            }
+        });
+
+        // Simple test button
+        const simpleTestBtn = document.getElementById('simpleTestBtn');
+        simpleTestBtn.addEventListener('click', async () => {
+            if (!currentToken) {
+                showResult('❌ Please login first to get your JWT token', 'error');
+                return;
+            }
+
+            simpleTestBtn.disabled = true;
+            simpleTestBtn.textContent = '🔄 Testing...';
+
+            try {
+                const response = await fetch('/api/debug-test', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(`✅ Simple test passed!\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult(`❌ Simple test failed:\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Simple test error: ${error.message}\nThis suggests the server or authentication has an issue.`, 'error');
+            } finally {
+                simpleTestBtn.disabled = false;
+                simpleTestBtn.textContent = '🔧 Simple Test';
+            }
+        });
+
+        // Test two-step process button
+        document.getElementById('testTwoStepBtn').addEventListener('click', async () => {
+            if (!currentToken) {
+                showResult('❌ Please login first to test the two-step process', 'error');
+                return;
+            }
+
+            const testBtn = document.getElementById('testTwoStepBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = '🔄 Testing...';
+            result.style.display = 'none';
+            copyBtn.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/test-two-step-submission', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const resultText = `Two-Step Process Test Results:
+
+📊 Overall Status: ${data.results.overall.status.toUpperCase()}
+${data.results.overall.message}
+
+🔐 Step 1 - Authentication: ${data.results.step1_auth.status.toUpperCase()}
+   ${data.results.step1_auth.message || 'No message'}
+
+📤 Step 2 - Datasets Endpoint: ${data.results.step2_datasets_endpoint.status.toUpperCase()}
+   ${data.results.step2_datasets_endpoint.message || 'No message'}
+   Status Code: ${data.results.step2_datasets_endpoint.httpStatus || 'N/A'}
+
+🏁 Step 3 - Submissions Endpoint: ${data.results.step3_submissions_endpoint.status.toUpperCase()}
+   ${data.results.step3_submissions_endpoint.message || 'No message'}
+   Status Code: ${data.results.step3_submissions_endpoint.httpStatus || 'N/A'}
+
+✅ Ready for Submission: ${data.results.overall.readyForSubmission ? 'YES' : 'NO'}
+
+${data.recommendations && data.recommendations.length > 0 ? 
+  '💡 Recommendations:\n' + data.recommendations.map(r => `- ${r}`).join('\n') : 
+  ''}
+
+Timestamp: ${data.results.overall.timestamp}`;
+
+                    showResult(resultText, data.results.overall.readyForSubmission ? 'success' : 'error');
+                } else {
+                    showResult(`Two-step test failed: ${data.message}`, 'error');
+                }
+
+            } catch (error) {
+                showResult(`Network error during two-step test: ${error.message}`, 'error');
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🧪 Test Two-Step Process';
+            }
+        });
+    </script>
+</body>
+</html> 
